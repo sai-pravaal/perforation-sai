@@ -1,0 +1,166 @@
+"""Behaviour tests for audited defects (synthetic numeric matrices only; no specimen images)."""
+
+import json
+
+import cv2
+import numpy as np
+import pytest
+
+from backend.session.manifest import ManifestManager, ManifestReadError
+from backend.session.session_manager import SessionManager
+
+
+def _tilted_rectangle(tilt_deg: float, size=(300.0, 200.0)) -> np.ndarray:
+    img = np.zeros((600, 800), np.float32)
+    box = cv2.boxPoints(((400.0, 300.0), size, tilt_deg)).astype(np.int32)
+    cv2.fillPoly(img, [box], 1.0)
+    return img
+
+
+@pytest.mark.parametrize("tilt", [0.0, 3.0, -4.0])
+def test_step06_rotation_cancels_tilt(tilt):
+    """PIPE-01: rotating by +detected angle leaves the stamp axis-aligned."""
+    from backend.pipeline.phase2_geometry_classification.step06_stamp_boundary_orientation import (
+        detect_stamp_orientation, rotate_image_plane)
+    angle, _, _ = detect_stamp_orientation(_tilted_rectangle(tilt))
+    residual, _, _ = detect_stamp_orientation(rotate_image_plane(_tilted_rectangle(tilt), angle))
+    assert abs(residual) < 0.5
+
+
+def test_step06_bbox_width_height_not_swapped():
+    """PIPE-02: a 300x200 axis-aligned stamp reports w=300, h=200."""
+    from backend.pipeline.phase2_geometry_classification.step06_stamp_boundary_orientation import detect_stamp_orientation
+    _, _, bbox = detect_stamp_orientation(_tilted_rectangle(0.0))
+    assert abs(bbox[2] - 300) <= 3 and abs(bbox[3] - 200) <= 3
+
+
+def test_step02_missing_target_raises():
+    """PIPE-04: no silent 10 um/px fallback."""
+    from backend.pipeline.phase1_calibration_registration.step02_lens_and_unit_calibration import (
+        CalibrationTargetNotFoundError, detect_calibration_scale)
+    with pytest.raises(CalibrationTargetNotFoundError):
+        detect_calibration_scale(np.zeros((200, 200), np.float32))
+
+
+@pytest.mark.parametrize("bad", ["", ".", "..", "../x", "a/b", "a\\b"])
+def test_session_ids_cannot_escape_root(tmp_path, bad):
+    """SESS-01: reset_session can never address the sessions root or outside it."""
+    sm = SessionManager(tmp_path / "sessions")
+    sm.create_session("keep_me")
+    with pytest.raises(ValueError):
+        sm.reset_session(bad)
+    assert sm.session_exists("keep_me")
+
+
+def test_manifest_unreadable_is_not_replaced(tmp_path):
+    """SESS-02: a corrupt manifest raises instead of being overwritten with a blank one."""
+    mm = ManifestManager(tmp_path / "s")
+    mm.set_status("in_progress")
+    mm.manifest_path.write_text("{ not json", encoding="utf-8")
+    with pytest.raises(ManifestReadError):
+        mm.load()
+
+
+def test_manifest_invalidate_prunes_images_and_keeps_tokens_monotonic(tmp_path):
+    """SESS-03: reprocess drops later-stage images; new tokens never repeat."""
+    mm = ManifestManager(tmp_path / "s")
+    t1 = mm.add_image_entry("stages/registered/a.png", "registration")
+    t2 = mm.add_image_entry("results/annotated_overview.png", "final_output")
+    mm.invalidate_from_stage(23)
+    stages = [i["stage"] for i in mm.load()["images"]]
+    assert stages == ["registration"]
+    t3 = mm.add_image_entry("results/annotated_overview.png", "final_output")
+    assert t3 > t2 > t1
+
+
+def test_zero_mad_does_not_hide_outlier():
+    """STAT-03: a hole far from an otherwise identical group gets a large z."""
+    from backend.pipeline.phase4_statistics_output.step20_robust_stats_deviation_score import robust_z_scores
+    z, _, _ = robust_z_scores(np.array([50.0]), np.array([[1.0], [1.0], [1.0], [2.0]]))
+    assert z[0] > 10
+
+
+def test_missing_descriptor_is_nan_not_zero():
+    """STAT-04: unmeasured values enter the composite vector as NaN."""
+    from backend.pipeline.phase3_feature_extraction.step18_composite_signature_assembly import assemble_vector
+    vec = assemble_vector({"shape": {}, "roughness": {}, "shadow": {"strength": None}})
+    assert all(np.isnan(v) for v in vec)
+
+
+def test_radius_profile_is_interpolated_on_rays():
+    """PIPE-16: an ellipse's radius is exact at 0 and 90 degrees."""
+    from backend.pipeline.phase3_feature_extraction.step12_centroid_radius_profile import build_radius_profile
+    th = np.linspace(0, 2 * np.pi, 61)
+    outline = [[50 + 20 * np.cos(t), 50 + 10 * np.sin(t)] for t in th]
+    prof = build_radius_profile(outline, "interior_hole")
+    assert prof["distances_px"][0] == pytest.approx(20.0, abs=0.05)
+    assert prof["distances_px"][18] == pytest.approx(10.0, abs=0.05)
+
+
+def test_single_flagged_hole_is_not_a_region():
+    """STAT-07: a lone flag is noise; two adjacent flags form a region."""
+    from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
+    from backend.pipeline.phase4_statistics_output.step22_spatial_clustering import build_candidate_regions
+    holes = [HoleRecord(f"top_{i + 1:02d}", [10 + 20 * i, 5], [7 + 20 * i, 2, 6, 6], [], "edge_tooth", "top", i + 1)
+             for i in range(6)]
+    flags = lambda ids: {h.hole_id: {"is_outlier": h.hole_id in ids} for h in holes}  # noqa: E731
+    assert build_candidate_regions(holes, flags({"top_03"}), [0, 0, 200, 100]) == []
+    assert len(build_candidate_regions(holes, flags({"top_03", "top_04"}), [0, 0, 200, 100])) == 1
+
+
+def test_mahalanobis_fallback_records_summed_z(tmp_path, monkeypatch):
+    """STAT-05: score.json records the method actually used."""
+    import backend.pipeline.phase4_statistics_output.step20_robust_stats_deviation_score as s20
+    from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
+    monkeypatch.setattr(s20, "COMBINATION_METHOD", "mahalanobis")
+    sm = SessionManager(tmp_path / "sessions")
+    sm.create_session("s")
+    holes = [HoleRecord(f"top_{i}", [0, 0], [0, 0, 1, 1], [], "edge_tooth", "top", i) for i in range(1, 4)]
+    comps = {h.hole_id: {"vector": [float(i)] * 14} for i, h in enumerate(holes)}
+    groups = {h.hole_id: {"comparison_group_ids": [g.hole_id for g in holes if g is not h]} for h in holes}
+    scores = s20.run_step20("s", holes, comps, groups, sm)
+    assert all(s["method"] == "summed_z" for s in scores.values())
+
+
+def test_pooled_scale_used_on_large_edges_and_calibrated(tmp_path):
+    """STAT-01 follow-up: edges with >= 8 teeth borrow the spread across edges; null is calibrated."""
+    import backend.pipeline.phase4_statistics_output.step20_robust_stats_deviation_score as s20
+    from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
+    from backend.pipeline.phase4_statistics_output.step19_reference_group_construction import build_reference_groups
+    from backend.pipeline.phase4_statistics_output.step21_outlier_thresholding import run_step21
+    rng = np.random.default_rng(11)
+    sm = SessionManager(tmp_path / "sessions")
+    sm.create_session("s")
+    holes, comps = [], {}
+    for e, edge in enumerate(["top", "bottom", "left", "right"]):
+        n = 10 if e < 2 else 6
+        for i in range(n):
+            hid = f"{edge}_{i + 1:02d}"
+            v = rng.standard_normal(14)
+            v[6] = np.nan
+            holes.append(HoleRecord(hid, [i, e], [i, e, 1, 1], [], "edge_tooth", edge, i + 1))
+            comps[hid] = {"vector": list(v)}
+    scores = s20.run_step20("s", holes, comps, build_reference_groups(holes), sm)
+    assert scores["top_01"]["scale_method"] == "pooled_edge_factor"
+    assert scores["top_01"]["pool_sizes"][0] == 9
+    assert scores["left_01"]["scale_method"] == "group_mad"  # only 6 teeth on that edge
+    flags = run_step21("s", holes, scores, sm)
+    assert all(f["tail_probability"] is None or 0 < f["tail_probability"] <= 1 for f in flags.values())
+
+
+def test_session_log_save_merges_acknowledgement(tmp_path):
+    """SESS-04: saving the form keeps the shadow-bleed acknowledgement."""
+    sm = SessionManager(tmp_path / "sessions")
+    sm.create_session("s")
+    sm.set_shadow_bleed_acknowledged("s", True)
+    sm.save_session_log("s", {"session_id": "s", "torches": []})
+    assert sm.load_session_log("s")["shadow_bleed_acknowledged"] is True
+
+
+def test_run_refuses_without_shadow_bleed_ack(tmp_path):
+    """SESS-04: a fresh run needs the Feature 3 acknowledgement."""
+    from backend.pipeline.runner import PipelineRunner
+    sm = SessionManager(tmp_path / "sessions")
+    sm.create_session("s")
+    result = PipelineRunner(sm).run("s")
+    assert result["status"] == "failed" and "shadow-bleed" in result["error"]

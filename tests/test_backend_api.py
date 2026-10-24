@@ -7,9 +7,14 @@ from backend.session.session_manager import SessionManager
 
 
 @pytest.fixture
-def temp_session(tmp_path):
-    manager = SessionManager(tmp_path / "sessions")
-    session_id = "demo_session"
+def temp_session(tmp_path, monkeypatch):
+    """A session in a temporary root; backend.api is pointed at it so no tracked data is touched."""
+    import backend.api as api
+
+    root = tmp_path / "sessions"
+    manager = SessionManager(root)
+    monkeypatch.setattr(api, "_session_manager", lambda: SessionManager(root))
+    session_id = "api_test_session"
     manager.create_session(session_id, "specimen_001")
     return manager, session_id
 
@@ -74,6 +79,10 @@ def test_backend_api_exports_required_functions(temp_session):
     assert api.get_pipeline_status(session_id)["session_id"] == session_id
     assert api.get_manifest_diff(session_id)["session_id"] == session_id
     assert isinstance(api.get_config_snapshot(session_id), dict)
+    # Never-run session: metadata is "not recorded", not the current environment.
+    assert api.get_version_metadata(session_id)["success"] is False
+    from backend.reporting.version_stamp import stamp_session
+    stamp_session(session_id, manager)
     assert api.get_version_metadata(session_id)["app_version"] == "1.0.0"
 
     manager.reset_session(session_id)

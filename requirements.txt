@@ -1,24 +1,29 @@
 # IPDS Confirmed Technology Stack Requirements
 # Standalone Desktop Reperforation-Detection Application
+#
+# Pinned to the exact versions the test suite was run against. Some behaviour
+# is version-sensitive (e.g. cv2.minAreaRect's angle convention changed in
+# OpenCV 4.5, which Step 6's rotation sign depends on), so upgrade deliberately
+# and re-run the tests. version_stamp.py records these versions for every run.
 
 # Core Numerical and Scientific Computing
-numpy>=1.24.0
-scipy>=1.10.0
-scikit-learn>=1.2.0
-pandas>=2.0.0
+numpy==2.4.6
+scipy==1.17.1
+scikit-learn==1.9.1
+pandas==3.1.0
 
 # Image Processing and Computer Vision
-opencv-python>=4.7.0
-scikit-image>=0.20.0
-rawpy>=0.18.0
-shapely>=2.0.0
+opencv-python==5.0.0.93
+scikit-image==0.26.0
+rawpy==0.27.1
+shapely==2.2.0
 
 # User Interface and Visualization
-PySide6>=6.5.0
-matplotlib>=3.7.0
+PySide6==6.12.0
+matplotlib==3.11.2
 
 # PDF Report Generation
-reportlab>=3.6.0
+reportlab==5.1.0
 
 # Testing and Packaging
-pytest>=7.3.0
+pytest==9.1.1

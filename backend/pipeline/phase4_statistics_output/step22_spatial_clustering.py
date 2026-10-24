@@ -11,7 +11,14 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-from backend.config.pipeline_constants import REGION_MERGE_ENABLED, REGION_MERGE_MAX_GAP
+import numpy as np
+
+from backend.config.pipeline_constants import (
+    REGION_MERGE_ENABLED,
+    REGION_MERGE_MAX_GAP,
+    REGION_MIN_RUN_LENGTH,
+    REGION_PITCH_GAP_FACTOR,
+)
 from backend.pipeline.phase2_geometry_classification.step06_stamp_boundary_orientation import StampFrame
 from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
 from backend.session.session_manager import SessionManager
@@ -37,20 +44,60 @@ def _find_runs(flagged_indices: List[int], max_gap: int, merge: bool) -> List[Li
     return runs
 
 
-def _region_polygon(members: List[HoleRecord]) -> List[List[float]]:
-    """Axis-aligned bounding polygon of member hole centroids (normalized coords)."""
-    xs = [h.centroid_px[0] for h in members]
-    ys = [h.centroid_px[1] for h in members]
-    x0, x1 = min(xs), max(xs)
-    y0, y1 = min(ys), max(ys)
+def _region_polygon(members: List[HoleRecord], edge: str, stamp_bbox: Optional[List[float]]) -> List[List[float]]:
+    """Physical extent of a run: union of the members' outlines, extended to the stamp edge.
+
+    Uses the Step 6 stamp box (orientation-normalised coordinates) so the
+    region covers the stretch of that edge, not just a line through centroids.
+    """
+    x0 = min(h.bbox_px[0] for h in members)
+    y0 = min(h.bbox_px[1] for h in members)
+    x1 = max(h.bbox_px[0] + h.bbox_px[2] for h in members)
+    y1 = max(h.bbox_px[1] + h.bbox_px[3] for h in members)
+    if stamp_bbox and len(stamp_bbox) == 4:
+        sx, sy, sw, sh = stamp_bbox
+        if edge == "top":
+            y0 = min(y0, sy)
+        elif edge == "bottom":
+            y1 = max(y1, sy + sh)
+        elif edge == "left":
+            x0 = min(x0, sx)
+        elif edge == "right":
+            x1 = max(x1, sx + sw)
     return [[x0, y0], [x1, y0], [x1, y1], [x0, y1]]
+
+
+def _slot_numbers(ordered: List[HoleRecord], edge: str) -> List[int]:
+    """Slot index per hole along the edge, counting skipped slots where a hole is missing.
+
+    Consecutive holes normally sit one pitch apart; a gap of about two pitches
+    means an undetected hole in between, which must count as an unflagged gap
+    rather than make its neighbours look adjacent.
+    """
+    axis = 0 if edge in ("top", "bottom") else 1
+    coords = [h.centroid_px[axis] for h in ordered]
+    if len(coords) < 2:
+        return list(range(len(coords)))
+    diffs = np.diff(coords)
+    pitch = float(np.median(diffs[diffs > 0])) if np.any(diffs > 0) else 0.0
+    slots = [0]
+    for d in diffs:
+        step = int(round(d / pitch)) if pitch > 0 and d > REGION_PITCH_GAP_FACTOR * pitch else 1
+        slots.append(slots[-1] + max(1, step))
+    return slots
 
 
 def build_candidate_regions(
     holes: List[HoleRecord],
-    outlier_flags: Dict[str, Dict[str, Any]]
+    outlier_flags: Dict[str, Dict[str, Any]],
+    stamp_bbox: Optional[List[float]] = None
 ) -> List[Dict[str, Any]]:
-    """Build the CandidateRegion list from per-hole outlier flags."""
+    """Build the CandidateRegion list from per-hole outlier flags.
+
+    A run must contain at least REGION_MIN_RUN_LENGTH flagged holes: one
+    isolated flag may be ordinary damage or noise; the spec treats a cluster
+    along an edge as the meaningful evidence.
+    """
     by_edge: Dict[str, List[HoleRecord]] = {}
     for h in holes:
         if h.edge is None or h.position_index is None:
@@ -62,21 +109,28 @@ def build_candidate_regions(
         ordered = sorted(by_edge.get(edge, []), key=lambda h: h.position_index)
         if not ordered:
             continue
-        flagged_idx = [
-            i for i, h in enumerate(ordered)
+        slots = _slot_numbers(ordered, edge)
+        slot_to_index = {s: i for i, s in enumerate(slots)}
+        flagged_slots = [
+            slots[i] for i, h in enumerate(ordered)
             if outlier_flags.get(h.hole_id, {}).get("is_outlier", False)
         ]
-        runs = _find_runs(flagged_idx, REGION_MERGE_MAX_GAP, REGION_MERGE_ENABLED)
+        runs = _find_runs(flagged_slots, REGION_MERGE_MAX_GAP, REGION_MERGE_ENABLED)
 
-        for n, (start_i, end_i) in enumerate(runs, 1):
-            members = ordered[start_i:end_i + 1]
+        n = 0
+        for start_s, end_s in runs:
+            members = [ordered[slot_to_index[s]] for s in range(start_s, end_s + 1) if s in slot_to_index]
+            flagged_count = sum(1 for s in flagged_slots if start_s <= s <= end_s)
+            if flagged_count < REGION_MIN_RUN_LENGTH:
+                continue
+            n += 1
             regions.append({
                 "region_id": f"{edge}_region_{n}",
                 "edge": edge,
                 "hole_ids": [h.hole_id for h in members],
                 "start_position": int(members[0].position_index),
                 "end_position": int(members[-1].position_index),
-                "region_coords_px": _region_polygon(members)
+                "region_coords_px": _region_polygon(members, edge, stamp_bbox)
             })
     return regions
 
@@ -97,7 +151,7 @@ def run_step22(
     stages_dir = session_dir / "stages"
     stages_dir.mkdir(parents=True, exist_ok=True)
 
-    regions = build_candidate_regions(holes, outlier_flags)
+    regions = build_candidate_regions(holes, outlier_flags, stamp_frame.stamp_bbox if stamp_frame else None)
 
     with open(stages_dir / "candidate_regions.json", "w", encoding="utf-8") as f:
         json.dump(regions, f, indent=2)

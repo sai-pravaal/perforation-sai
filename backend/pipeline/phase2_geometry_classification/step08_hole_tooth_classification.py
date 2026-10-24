@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
+from backend.config.pipeline_constants import EDGE_TOOTH_MARGIN_PX, EDGE_TOOTH_OUTLINE_FRACTION
 from backend.pipeline.phase2_geometry_classification.step06_stamp_boundary_orientation import StampFrame
 from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
 from backend.session.manifest import ManifestManager
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 def classify_hole_type(
     hole_outline: List[List[float]],
     stamp_boundary: List[List[float]],
-    margin_px: float = 8.0
+    margin_px: float = EDGE_TOOTH_MARGIN_PX
 ) -> str:
     """Classify candidate as 'edge_tooth' or 'interior_hole' based on boundary proximity."""
     stamp_pts = np.array(stamp_boundary, dtype=np.float32).reshape((-1, 1, 2))
@@ -40,7 +41,7 @@ def classify_hole_type(
 
     # If substantial portion touches the boundary, it is an edge tooth
     fraction = pts_near_edge / max(1, len(hole_outline))
-    return "edge_tooth" if fraction > 0.15 else "interior_hole"
+    return "edge_tooth" if fraction > EDGE_TOOTH_OUTLINE_FRACTION else "interior_hole"
 
 
 def assign_edge_and_position(
@@ -60,8 +61,15 @@ def assign_edge_and_position(
         "left": [],
         "right": []
     }
+    interior: List[HoleRecord] = []
 
     for h in holes:
+        if h.type == "interior_hole":
+            # Interior holes (blocks/panes) belong to no edge (HoleRecord allows
+            # edge=None); they are compared among themselves in Step 19.
+            h.edge = None
+            interior.append(h)
+            continue
         cx, cy = h.centroid_px
         d_top = abs(cy - top_y)
         d_bottom = abs(cy - bottom_y)
@@ -96,6 +104,14 @@ def assign_edge_and_position(
             h.position_index = idx
             h.hole_id = f"{edge_name}_{idx:02d}"
             final_holes.append(h)
+
+    # Interior holes: stable ids in reading order (top-to-bottom, then left-to-right).
+    # position_index stays None because there is no edge to count along.
+    interior.sort(key=lambda h: (round(h.centroid_px[1]), h.centroid_px[0]))
+    for idx, h in enumerate(interior, 1):
+        h.position_index = None
+        h.hole_id = f"interior_{idx:02d}"
+        final_holes.append(h)
 
     return final_holes
 

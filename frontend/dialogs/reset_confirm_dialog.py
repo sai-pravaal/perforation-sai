@@ -1,31 +1,41 @@
-"""Session-reset confirmation dialog for Phase 16."""
+"""Session-reset confirmation (Feature 23)."""
 
 from __future__ import annotations
 
 from typing import Optional
 
-from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import QMessageBox, QWidget
 
-from frontend.client import Client
+RESET_WARNING = (
+    "This will permanently delete all images and data for this session. This cannot be undone."
+)
 
 
-class ResetConfirmDialog(QDialog):
-    """Confirm and request session reset through the backend API."""
+class ResetConfirmDialog(QMessageBox):
+    """Warning message box with Cancel as the default (Enter-safe) button.
 
-    def __init__(self, client: Optional[Client] = None) -> None:
-        super().__init__()
-        self.client = client or Client()
-        self.session_id = QLineEdit()
-        self.session_id.setPlaceholderText("Session identifier")
-        self.message = QLabel("Reset is not yet requested.")
-        reset_button = QPushButton("Reset session")
-        reset_button.clicked.connect(self.reset_session)
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.session_id)
-        layout.addWidget(reset_button)
-        layout.addWidget(self.message)
+    Only an explicit click on the destructive "Yes, Reset" button confirms.
+    The caller performs client.reset_session after confirmation.
+    """
 
-    def reset_session(self) -> None:
-        """Request deletion of the selected session through the API bridge."""
-        response = self.client.call("reset_session", self.session_id.text().strip())
-        self.message.setText("Session reset." if response.get("result") else "Session reset failed.")
+    def __init__(self, parent: Optional[QWidget] = None, session_id: Optional[str] = None) -> None:
+        super().__init__(parent)
+        self.setIcon(QMessageBox.Icon.Warning)
+        self.setWindowTitle("Reset Session")
+        self.setText(RESET_WARNING)
+        if session_id:
+            self.setInformativeText(f"Session: {session_id}")
+        self.cancel_button = self.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+        self.reset_button = self.addButton("Yes, Reset", QMessageBox.ButtonRole.DestructiveRole)
+        self.reset_button.setObjectName("destructive")
+        self.setDefaultButton(self.cancel_button)
+        self.setEscapeButton(self.cancel_button)
+
+    def confirmed(self) -> bool:
+        """Show modally; True only when "Yes, Reset" was clicked."""
+        self.exec()
+        return self.clickedButton() is self.reset_button
+
+    @classmethod
+    def confirm(cls, parent: Optional[QWidget], session_id: Optional[str]) -> bool:
+        return cls(parent, session_id).confirmed()

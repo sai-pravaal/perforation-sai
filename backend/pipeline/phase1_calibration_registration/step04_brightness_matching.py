@@ -8,11 +8,12 @@ computes linear rescaling factors to equalize illumination intensity, and flags 
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+from skimage.filters import threshold_otsu
 
-from backend.config.pipeline_constants import BRIGHTNESS_MISMATCH_TOLERANCE
+from backend.config.pipeline_constants import BRIGHTNESS_MISMATCH_TOLERANCE, BRIGHTNESS_PATCH_SIZE_PX
 from backend.pipeline.phase0_ingestion.step01_raw_capture_ingestion import RawFrameRecord
 from backend.session.manifest import ManifestManager
 from backend.session.session_manager import SessionManager
@@ -22,24 +23,44 @@ logger = logging.getLogger(__name__)
 
 def locate_reference_paper_patch(
     torch_frames: Dict[str, np.ndarray],
-    patch_size: int = 32
+    patch_size: int = BRIGHTNESS_PATCH_SIZE_PX
 ) -> Tuple[int, int, int, int]:
     """Identify coordinates (ymin, ymax, xmin, xmax) of a shared undecorated patch of stamp paper.
-    
-    Default selects a central patch confirmed to have stable non-zero luminance across frames.
+
+    The spec needs plain paper with no hole, perforation or print nearby,
+    visible in all four torch photos. Candidate patches on a regular grid are
+    kept only if they are brighter than the Otsu split of the mean torch image
+    (paper, not the dark backdrop or a hole), and the one with the lowest
+    texture (coefficient of variation, worst case over the four torches) wins.
+    Print, perforations and edges all raise the variation, so they are avoided.
     """
-    first_frame = next(iter(torch_frames.values()))
-    h, w = first_frame.shape
+    stack = np.stack([np.asarray(f, dtype=np.float32) for f in torch_frames.values()], axis=0)
+    h, w = stack.shape[1:]
+    size = max(4, min(patch_size, h, w))
+    mean_img = stack.mean(axis=0)
+    finite = mean_img[np.isfinite(mean_img)]
+    paper_level = float(threshold_otsu(finite)) if finite.size and finite.max() > finite.min() else 0.0
 
-    # Choose central region of paper
-    cy, cx = h // 2, w // 2
-    half = patch_size // 2
-    ymin = max(0, cy - half)
-    ymax = min(h, cy + half)
-    xmin = max(0, cx - half)
-    xmax = min(w, cx + half)
+    best: Optional[Tuple[float, int, int]] = None
+    for y in range(0, h - size + 1, size):
+        for x in range(0, w - size + 1, size):
+            patches = stack[:, y:y + size, x:x + size]
+            if float(patches.mean()) <= paper_level:
+                continue
+            means = patches.mean(axis=(1, 2))
+            if np.any(means <= 1e-6):
+                continue
+            cv = float(np.max(patches.std(axis=(1, 2)) / means))
+            if best is None or cv < best[0]:
+                best = (cv, y, x)
 
-    return ymin, ymax, xmin, xmax
+    if best is None:
+        # No bright patch found (e.g. tiny frames): fall back to the centre.
+        logger.warning("Step 4: no plain-paper patch found; using the frame centre")
+        y, x = max(0, h // 2 - size // 2), max(0, w // 2 - size // 2)
+    else:
+        _, y, x = best
+    return y, min(h, y + size), x, min(w, x + size)
 
 
 def run_step04(

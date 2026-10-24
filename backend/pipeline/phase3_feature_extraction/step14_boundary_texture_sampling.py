@@ -7,6 +7,7 @@ shows the highest local texture contrast at that location.
 """
 
 import logging
+import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -16,6 +17,7 @@ import numpy as np
 from backend.config.pipeline_constants import BOUNDARY_SAMPLE_SPACING_UM, BOUNDARY_PATCH_SIZE_PX
 from backend.pipeline.phase1_calibration_registration.step02_lens_and_unit_calibration import CalibrationRecord
 from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
+from backend.pipeline.phase2_geometry_classification.step09_roi_extraction import save_linear_png
 from backend.session.session_manager import SessionManager
 
 logger = logging.getLogger(__name__)
@@ -39,15 +41,28 @@ def resample_outline(outline: List[List[float]], spacing_px: float) -> List[Tupl
     if total <= 0:
         return []
 
+    closed = pts.shape[0] > 2 and np.allclose(pts[0], pts[-1])
+
+    def point_at(arc: float) -> np.ndarray:
+        if closed:
+            arc = arc % total
+        else:
+            arc = min(max(arc, 0.0), total)
+        idx = int(np.searchsorted(cum, arc, side="right") - 1)
+        idx = max(0, min(idx, len(seg_len) - 1))
+        frac = (arc - cum[idx]) / max(1e-9, seg_len[idx])
+        return pts[idx] + frac * seg_vecs[idx]
+
+    # Tangent from the points half a spacing before and after the sample (spec:
+    # "looking at the nearby points just before and after it"), which smooths
+    # over single-segment jitter in the subpixel outline.
+    half = max(spacing_px / 2.0, 1.0)
     samples: List[Tuple[float, float, float]] = []
     target = 0.0
     while target < total:
-        seg_idx = int(np.searchsorted(cum, target, side="right") - 1)
-        seg_idx = max(0, min(seg_idx, len(seg_len) - 1))
-        seg_start = cum[seg_idx]
-        frac = (target - seg_start) / max(1e-9, seg_len[seg_idx])
-        p = pts[seg_idx] + frac * seg_vecs[seg_idx]
-        tangent_deg = float(np.degrees(np.arctan2(seg_vecs[seg_idx][1], seg_vecs[seg_idx][0])))
+        p = point_at(target)
+        ahead, behind = point_at(target + half), point_at(target - half)
+        tangent_deg = float(np.degrees(np.arctan2(ahead[1] - behind[1], ahead[0] - behind[0])))
         samples.append((float(p[0]), float(p[1]), tangent_deg))
         target += spacing_px
     return samples
@@ -66,11 +81,24 @@ def extract_aligned_patch(
     angle_deg: float,
     size: int
 ) -> np.ndarray:
-    """Cut a square patch centered at `center`, rotated so the tangent is horizontal."""
-    rot = cv2.getRotationMatrix2D(center, angle_deg, 1.0)
-    h, w = image.shape
-    rotated = cv2.warpAffine(image, rot, (w, h), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
-    patch = cv2.getRectSubPix(rotated, (size, size), center)
+    """Cut a square patch centered at `center`, rotated so the tangent is horizontal.
+
+    Only the size x size window is resampled: each output pixel (u, v) is read
+    from center + R(angle) . ((u, v) - c), so the patch's +x axis runs along
+    the tangent. (Previously the whole crop was rotated for every sample.)
+    """
+    a = np.radians(angle_deg)
+    cos_a, sin_a = float(np.cos(a)), float(np.sin(a))
+    c = (size - 1) / 2.0
+    cx, cy = float(center[0]), float(center[1])
+    inverse = np.array([
+        [cos_a, -sin_a, cx - cos_a * c + sin_a * c],
+        [sin_a, cos_a, cy - sin_a * c - cos_a * c],
+    ], dtype=np.float64)
+    patch = cv2.warpAffine(
+        image.astype(np.float32), inverse, (size, size),
+        flags=cv2.INTER_LINEAR | cv2.WARP_INVERSE_MAP, borderMode=cv2.BORDER_REPLICATE
+    )
     return patch.astype(np.float32)
 
 
@@ -109,6 +137,9 @@ def run_step14(
 
         patches: List[np.ndarray] = []
         patch_dir = holes_dir / h.hole_id / "boundary_patches"
+        # Start clean so a re-run with fewer samples leaves no stale patch files.
+        if patch_dir.is_dir():
+            shutil.rmtree(patch_dir, ignore_errors=True)
         patch_dir.mkdir(parents=True, exist_ok=True)
 
         for i, (x, y, tangent_deg) in enumerate(samples):
@@ -125,8 +156,8 @@ def run_step14(
             patch = extract_aligned_patch(torch_imgs[best_tag], (x, y), tangent_deg, patch_size)
             patches.append(patch)
 
-            patch_u8 = (np.clip(patch, 0.0, 1.0) * 255.0).astype(np.uint8)
-            cv2.imwrite(str(patch_dir / f"patch_{i:03d}.png"), patch_u8)
+            # 16-bit linear so Step 15 can be resumed from disk without precision loss.
+            save_linear_png(patch_dir / f"patch_{i:03d}.png", patch)
 
         all_patches[h.hole_id] = patches
 

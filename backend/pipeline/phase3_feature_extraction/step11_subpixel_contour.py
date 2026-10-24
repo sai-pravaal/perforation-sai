@@ -12,9 +12,12 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import cv2
 import numpy as np
 from skimage import measure
+from skimage.filters import threshold_otsu
 
+from backend.config.pipeline_constants import OUTPUT_DISPLAY_GAMMA
 from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
 from backend.session.session_manager import SessionManager
 
@@ -22,17 +25,50 @@ logger = logging.getLogger(__name__)
 
 
 def compute_midpoint_threshold(crop: np.ndarray) -> float:
-    """Derive the brightness midpoint between the bright hole plateau and dark paper plateau."""
+    """Derive the brightness midpoint between the bright hole plateau and dark paper plateau.
+
+    The crop's own histogram is split into two classes with Otsu's method and
+    each plateau is that class's median, so the level does not depend on how
+    much of the crop the hole covers (a tooth covers well under 5%, which made
+    fixed percentiles land both "plateaus" on paper).
+    """
     finite = crop[np.isfinite(crop)]
-    if finite.size == 0:
-        return 0.5
-    lo = float(np.percentile(finite, 5.0))
-    hi = float(np.percentile(finite, 95.0))
-    return (lo + hi) / 2.0
+    if finite.size == 0 or float(finite.max()) <= float(finite.min()):
+        return float(finite.mean()) if finite.size else 0.5
+    split = float(threshold_otsu(finite))
+    dark = finite[finite <= split]
+    bright = finite[finite > split]
+    if dark.size == 0 or bright.size == 0:
+        return split
+    return (float(np.median(dark)) + float(np.median(bright))) / 2.0
+
+
+def _is_closed(contour: np.ndarray) -> bool:
+    return contour.shape[0] > 2 and np.allclose(contour[0], contour[-1])
+
+
+def _select_hole_contour(contours: List[np.ndarray], shape: tuple) -> np.ndarray:
+    """Pick the contour belonging to the hole the crop is centred on.
+
+    Step 9 centres every crop on the hole, so: prefer the largest closed contour
+    that encloses the crop centre; otherwise (teeth and holes cut by the crop
+    border give open contours) take the contour passing nearest the centre.
+    Neighbouring holes and the stamp edge are never chosen merely for being big.
+    """
+    cy, cx = (shape[0] - 1) / 2.0, (shape[1] - 1) / 2.0
+    enclosing = []
+    for c in contours:
+        if _is_closed(c):
+            poly = c[:, ::-1].astype(np.float32).reshape(-1, 1, 2)  # (x, y)
+            if cv2.pointPolygonTest(poly, (cx, cy), False) >= 0:
+                enclosing.append((abs(cv2.contourArea(poly)), c))
+    if enclosing:
+        return max(enclosing, key=lambda t: t[0])[1]
+    return min(contours, key=lambda c: float(np.min(np.hypot(c[:, 0] - cy, c[:, 1] - cx))))
 
 
 def extract_subpixel_outline(backlit_crop: np.ndarray) -> List[List[float]]:
-    """Run marching squares at the midpoint threshold and select the best hole contour.
+    """Run marching squares at the midpoint threshold and select the hole's contour.
 
     Returns an ordered list of subpixel [x, y] coordinates (image coordinates).
     """
@@ -42,13 +78,7 @@ def extract_subpixel_outline(backlit_crop: np.ndarray) -> List[List[float]]:
     if not contours:
         return []
 
-    # Select the contour enclosing the largest area (discards spurious noise contours).
-    def _polygon_area(c: np.ndarray) -> float:
-        ys = c[:, 0]
-        xs = c[:, 1]
-        return abs(float(np.sum(xs * np.roll(ys, -1) - np.roll(xs, -1) * ys))) / 2.0
-
-    best = max(contours, key=_polygon_area)
+    best = _select_hole_contour(contours, backlit_crop.shape)
     # Convert (row, col) -> (x, y)
     outline = [[float(pt[1]), float(pt[0])] for pt in best]
     return outline
@@ -73,6 +103,7 @@ def run_step11(
     holes_dir = session_dir / "holes"
 
     outlines: Dict[str, List[List[float]]] = {}
+    image_entries: List[Dict[str, Any]] = []
 
     for h in holes:
         hole_crops = crops.get(h.hole_id, {})
@@ -90,6 +121,20 @@ def run_step11(
         out_path = h_dir / "subpixel_outline.json"
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump({"hole_id": h.hole_id, "type": h.type, "outline_px": outline}, f, indent=2)
+
+        # Feature 6/8 image: backlit crop with the traced subpixel contour.
+        overlay = np.power(np.clip(backlit, 0.0, 1.0), 1.0 / OUTPUT_DISPLAY_GAMMA)
+        overlay = cv2.cvtColor((overlay * 255.0).astype(np.uint8), cv2.COLOR_GRAY2BGR)
+        if len(outline) >= 2:
+            pts = np.round(np.asarray(outline) * 16).astype(np.int32).reshape(-1, 1, 2)
+            cv2.polylines(overlay, [pts], isClosed=False, color=(0, 200, 255), thickness=1,
+                          lineType=cv2.LINE_AA, shift=4)
+        cv2.imwrite(str(h_dir / "contour_overlay.png"), overlay)
+        image_entries.append({"path": f"holes/{h.hole_id}/contour_overlay.png",
+                              "stage": "subpixel_contour", "hole_id": h.hole_id, "edge": h.edge})
+
+    if image_entries:
+        manifest.add_image_entries(image_entries)
 
     manifest.add_stage_entry(
         step_id=11,

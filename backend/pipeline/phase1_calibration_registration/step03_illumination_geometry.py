@@ -15,11 +15,32 @@ from typing import Any, Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
+from backend.config.pipeline_constants import (
+    BALL_HOUGH_DP,
+    BALL_HOUGH_MIN_DIST_PX,
+    BALL_HOUGH_PARAM1,
+    BALL_HOUGH_PARAM2,
+    BALL_MIN_RADIUS_PX,
+)
 from backend.pipeline.phase0_ingestion.step01_raw_capture_ingestion import RawFrameRecord
+from backend.pipeline.phase1_calibration_registration.step02_lens_and_unit_calibration import _to_detection_u8
+from backend.pipeline.phase2_geometry_classification.step06_stamp_boundary_orientation import detect_stamp_orientation
 from backend.session.manifest import ManifestManager
 from backend.session.session_manager import SessionManager
 
 logger = logging.getLogger(__name__)
+
+
+# Azimuth convention shared by Path A and Path B (and consumed by Step 17):
+# degrees in the stamp frame, 0 along the stamp's row direction (+x after Step 6
+# straightening), increasing counter-clockwise as seen from the camera, in [0, 360).
+# Path A azimuths are protractor readings set against the stamp's row, so they are
+# already in this frame. Path B is measured in raw image coordinates (y down,
+# before Step 6), so it is converted here.
+
+
+def _normalize_azimuth(deg: float) -> float:
+    return float(deg) % 360.0
 
 
 def solve_ball_bearing_reflection(
@@ -27,17 +48,20 @@ def solve_ball_bearing_reflection(
     torch_bb: np.ndarray
 ) -> Optional[Tuple[float, float]]:
     """Solve 3D light direction via chrome ball bearing reflection geometry (Path B).
-    
+
     Formula: Light Ray L = 2 * (V . N) * N - V
     where V is viewing ray [0, 0, 1] and N is sphere surface normal at glint.
+    Returns (azimuth, elevation) with azimuth counter-clockwise in *image*
+    axes (y flipped to point up); the caller rotates it into the stamp frame.
     """
-    diffuse_u8 = (np.clip(diffuse_bb, 0.0, 1.0) * 255.0).astype(np.uint8)
+    diffuse_u8 = _to_detection_u8(diffuse_bb)
     torch_u8 = (np.clip(torch_bb, 0.0, 1.0) * 255.0).astype(np.uint8)
 
     # Detect circular ball boundary
     circles = cv2.HoughCircles(
-        diffuse_u8, cv2.HOUGH_GRADIENT, dp=1.2, minDist=50,
-        param1=50, param2=30, minRadius=20, maxRadius=int(min(diffuse_u8.shape) / 2)
+        diffuse_u8, cv2.HOUGH_GRADIENT, dp=BALL_HOUGH_DP, minDist=BALL_HOUGH_MIN_DIST_PX,
+        param1=BALL_HOUGH_PARAM1, param2=BALL_HOUGH_PARAM2, minRadius=BALL_MIN_RADIUS_PX,
+        maxRadius=int(min(diffuse_u8.shape) / 2)
     )
     if circles is None:
         # Fallback: thresholding + minEnclosingCircle
@@ -78,8 +102,9 @@ def solve_ball_bearing_reflection(
     ly = 2.0 * nz * ny
     lz = 2.0 * nz * nz - 1.0
 
-    # Convert L direction to azimuth and elevation in degrees
-    azimuth = math.degrees(math.atan2(ly, lx)) % 360.0
+    # Convert L direction to azimuth and elevation in degrees. Image y points
+    # down, so it is negated to get a counter-clockwise (y-up) azimuth.
+    azimuth = math.degrees(math.atan2(-ly, lx)) % 360.0
     norm_xy = math.sqrt(lx * lx + ly * ly)
     elevation = math.degrees(math.atan2(lz, norm_xy))
 
@@ -102,21 +127,28 @@ def run_step03(
 
     illumination_geometry: List[Dict[str, Any]] = []
 
+    # Stamp tilt in the raw frame (the same measurement Step 6 later cancels),
+    # used to rotate Path B's image-frame azimuths into the stamp frame.
+    stamp_tilt_deg = 0.0
+    if ball_bearing_used and "diffuse" in frames:
+        stamp_tilt_deg, _, _ = detect_stamp_orientation(frames["diffuse"].brightness_array)
+
     for i in range(1, 5):
         tag = f"torch_{i}"
         frame = frames.get(tag)
         meta = frame.torch_meta if frame else None
 
-        # Path A calculation
-        if meta:
-            h = float(meta.get("height_cm", 10.0))
-            d = float(meta.get("distance_cm", 10.0))
-            corr = float(meta.get("manual_correction_deg", 0.0))
-            az = float(meta.get("azimuth_deg", (i - 1) * 90.0))
-            elev = SessionManager.compute_elevation(h, d, corr)
-        else:
-            az = float((i - 1) * 90.0)
-            elev = 45.0
+        # Path A calculation (always available; required inputs, no silent defaults)
+        if not meta:
+            raise ValueError(f"No session-log geometry for {tag}; enter its height, distance and azimuth.")
+        missing = [k for k in ("height_cm", "distance_cm", "azimuth_deg") if meta.get(k) is None]
+        if missing:
+            raise ValueError(f"Session log for {tag} is missing {', '.join(missing)}.")
+        h = float(meta["height_cm"])
+        d = float(meta["distance_cm"])
+        corr = float(meta.get("manual_correction_deg", 0.0) or 0.0)
+        az = _normalize_azimuth(float(meta["azimuth_deg"]))
+        elev = SessionManager.compute_elevation(h, d, corr)
 
         source_path = "calculated"
         final_az = az
@@ -126,14 +158,23 @@ def run_step03(
         if ball_bearing_used:
             bb_diff_frame = frames.get("ball_bearing_diffuse")
             bb_torch_frame = frames.get(f"ball_bearing_torch_{i}")
+            bb_sol = None
             if bb_diff_frame is not None and bb_torch_frame is not None:
                 bb_sol = solve_ball_bearing_reflection(
                     bb_diff_frame.brightness_array,
                     bb_torch_frame.brightness_array
                 )
-                if bb_sol is not None:
-                    final_az, final_elev = bb_sol
-                    source_path = "ball_bearing"
+            if bb_sol is not None:
+                image_az, final_elev = bb_sol
+                # A stamp tilted clockwise by t shows a stamp-frame azimuth a at
+                # image azimuth a - t, so a = image azimuth + t.
+                final_az = _normalize_azimuth(image_az + stamp_tilt_deg)
+                source_path = "ball_bearing"
+            else:
+                logger.warning(
+                    "Step 3: ball bearing marked as used but Path B failed for %s; "
+                    "using the calculated (Path A) direction instead", tag
+                )
 
         illumination_geometry.append({
             "torch_index": i,

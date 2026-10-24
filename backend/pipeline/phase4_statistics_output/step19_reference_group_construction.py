@@ -18,26 +18,41 @@ logger = logging.getLogger(__name__)
 
 
 def build_reference_groups(holes: List[HoleRecord]) -> Dict[str, Dict[str, Any]]:
-    """Return a ReferenceGroup dict per hole. Pure function of edge assignments."""
-    all_ids = [h.hole_id for h in holes]
+    """Return a ReferenceGroup dict per hole. Pure function of type and edge assignments.
+
+    Teeth and interior holes are never mixed: a tooth's centre comes from a
+    circle fit to a partial arc and it has no roundness ratio, so its
+    descriptors are measured differently from a closed interior hole's (spec Step 8).
+    - Teeth: every other tooth on the same edge; if that edge has fewer than
+      MIN_HOLES_PER_EDGE teeth, every other tooth on the specimen ("pooled",
+      low_confidence).
+    - Interior holes: one pooled group of every other interior hole
+      ("interior"), low_confidence when it has fewer than MIN_HOLES_PER_EDGE members.
+    """
+    teeth = [h for h in holes if h.type != "interior_hole"]
+    interior_ids = [h.hole_id for h in holes if h.type == "interior_hole"]
+    teeth_ids = [h.hole_id for h in teeth]
 
     edge_members: Dict[str, List[str]] = {}
-    for h in holes:
+    for h in teeth:
         edge_members.setdefault(h.edge, []).append(h.hole_id)
 
     groups: Dict[str, Dict[str, Any]] = {}
     for h in holes:
-        edge = h.edge
-        same_edge = edge_members.get(edge, []) if edge is not None else []
-
-        if edge is not None and len(same_edge) >= MIN_HOLES_PER_EDGE:
-            comparison = [hid for hid in same_edge if hid != h.hole_id]
-            stratification = "edge"
-            low_confidence = False
+        if h.type == "interior_hole":
+            comparison = [hid for hid in interior_ids if hid != h.hole_id]
+            stratification = "interior"
+            low_confidence = len(interior_ids) < MIN_HOLES_PER_EDGE
         else:
-            comparison = [hid for hid in all_ids if hid != h.hole_id]
-            stratification = "pooled"
-            low_confidence = True
+            same_edge = edge_members.get(h.edge, []) if h.edge is not None else []
+            if h.edge is not None and len(same_edge) >= MIN_HOLES_PER_EDGE:
+                comparison = [hid for hid in same_edge if hid != h.hole_id]
+                stratification = "edge"
+                low_confidence = False
+            else:
+                comparison = [hid for hid in teeth_ids if hid != h.hole_id]
+                stratification = "pooled"
+                low_confidence = True
 
         groups[h.hole_id] = {
             "hole_id": h.hole_id,

@@ -16,6 +16,14 @@ from typing import Any, Dict, List, Optional
 import cv2
 import numpy as np
 
+from backend.config.pipeline_constants import (
+    HOLE_AREA_MAX_FACTOR,
+    HOLE_AREA_MIN_FRACTION,
+    HOLE_MAX_DIAMETER_MM,
+    HOLE_MIN_DIAMETER_MM,
+    HOLE_OVERSIZE_REVIEW_FACTOR,
+    HOLE_THRESHOLD_BLUR_PX,
+)
 from backend.pipeline.phase0_ingestion.step01_raw_capture_ingestion import RawFrameRecord
 from backend.pipeline.phase1_calibration_registration.step02_lens_and_unit_calibration import CalibrationRecord
 from backend.session.manifest import ManifestManager
@@ -60,14 +68,20 @@ class HoleRecord:
 def detect_perforation_candidates(
     backlit_image: np.ndarray,
     microns_per_pixel: float,
-    min_diameter_mm: float = 0.5,
-    max_diameter_mm: float = 3.0
+    min_diameter_mm: float = HOLE_MIN_DIAMETER_MM,
+    max_diameter_mm: float = HOLE_MAX_DIAMETER_MM,
+    oversize_out: Optional[List[Dict[str, Any]]] = None
 ) -> List[Dict[str, Any]]:
-    """Find bright hole candidates in backlit frame filtered by physical area."""
+    """Find bright hole candidates in backlit frame filtered by physical area.
+
+    Blobs larger than the plausible range but within HOLE_OVERSIZE_REVIEW_FACTOR
+    of it (likely two merged holes or a paper flaw) are appended to oversize_out
+    for manual review instead of being silently dropped (spec Step 7).
+    """
     img_u8 = (np.clip(backlit_image, 0.0, 1.0) * 255.0).astype(np.uint8)
 
     # Otsu thresholding: bright holes vs dark paper
-    blur = cv2.GaussianBlur(img_u8, (3, 3), 0)
+    blur = cv2.GaussianBlur(img_u8, (HOLE_THRESHOLD_BLUR_PX, HOLE_THRESHOLD_BLUR_PX), 0)
     _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     # Connected components
@@ -79,12 +93,21 @@ def detect_perforation_candidates(
     r_max_um = (max_diameter_mm * 1000.0) / 2.0
     r_min_px = r_min_um / microns_per_pixel
     r_max_px = r_max_um / microns_per_pixel
-    area_min_px = math.pi * (r_min_px ** 2) * 0.3  # Allow for teeth (partial circles)
-    area_max_px = math.pi * (r_max_px ** 2) * 2.0  # Allow margin for merged holes
+    area_min_px = math.pi * (r_min_px ** 2) * HOLE_AREA_MIN_FRACTION  # teeth show only part of a circle
+    area_max_px = math.pi * (r_max_px ** 2) * HOLE_AREA_MAX_FACTOR    # margin for slightly merged outlines
 
     candidates = []
     for label in range(1, num_labels):
         area = stats[label, cv2.CC_STAT_AREA]
+        if area_max_px < area <= area_max_px * HOLE_OVERSIZE_REVIEW_FACTOR and oversize_out is not None:
+            oversize_out.append({
+                "centroid_px": [float(centroids[label][0]), float(centroids[label][1])],
+                "bbox_px": [float(stats[label, cv2.CC_STAT_LEFT]), float(stats[label, cv2.CC_STAT_TOP]),
+                            float(stats[label, cv2.CC_STAT_WIDTH]), float(stats[label, cv2.CC_STAT_HEIGHT])],
+                "area_px": int(area),
+                "reason": "larger than a single perforation (possible merged holes or paper flaw)",
+            })
+            continue
         if area_min_px <= area <= area_max_px:
             x = float(stats[label, cv2.CC_STAT_LEFT])
             y = float(stats[label, cv2.CC_STAT_TOP])
@@ -126,10 +149,19 @@ def run_step07(
         raise KeyError("Missing required 'backlit' frame for Step 7 candidate detection")
 
     backlit_frame = frames["backlit"]
+    oversize: List[Dict[str, Any]] = []
     raw_candidates = detect_perforation_candidates(
         backlit_frame.brightness_array,
-        microns_per_pixel=calibration_record.microns_per_pixel
+        microns_per_pixel=calibration_record.microns_per_pixel,
+        oversize_out=oversize
     )
+    # Over-sized blobs are kept for a manual look (spec: "flagged for a manual
+    # look before being fully trusted"), not passed on as holes.
+    with open(stages_dir / "oversize_candidates.json", "w", encoding="utf-8") as f:
+        json.dump(oversize, f, indent=2)
+    if oversize:
+        logger.warning("Step 7: %d over-sized blob(s) flagged for manual review in stages/oversize_candidates.json",
+                       len(oversize))
 
     hole_records: List[HoleRecord] = []
     for i, c in enumerate(raw_candidates, 1):

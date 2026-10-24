@@ -196,6 +196,7 @@ SUSPICION_BANDS = {
 - **No Scientific/Image Libraries in Frontend**: `frontend/` must have 0 imports from `cv2`, `numpy`, `scipy`, `rawpy`, `skimage`, `shapely`.
 - **No Direct I/O in UI**: Tabs and widgets communicate strictly via `frontend/client.py` -> `backend/api.py`.
 - **Safe Calls in Client**: Every call in `frontend/client.py` wraps exceptions via a `safe_call` wrapper, returning structured success/failure dicts with friendly messages.
+  - *Decision (2026-10-25, SESS-06):* this structured-result convention is the single error-reporting method. The frontend specification's alternative (re-raising a `ClientError`) is not used: a returned result can never escape a Qt slot half-handled, every view handles it through one function (`Client.unwrap`), and the message shown is always readable. Backend API functions return `{"success": False, "error": ...}` on failure and log the full traceback; the UI shows only the message.
 
 ---
 
@@ -232,6 +233,14 @@ All 29 functions defined across Usability Features 1–29:
 27. `get_validation_report(run_id: str) -> dict` (Feature 26)
 28. `export_session(session_id: str) -> str` (Feature 27)
 29. `run_quality_gate(session_id: str) -> dict` (Feature 29)
+
+**Amendment (2026-10-25, approved by the project owner):** the freeze is extended so the
+application can receive files and start a run, which the original 29 functions could not do.
+30. `upload_files(session_id: str, files: dict[str, list[str]]) -> dict` (Feature 1 — copy tagged files into `raw/` under canonical names)
+31. `import_folder(session_id: str, folder: str) -> dict` (Feature 1 — take convention-named files from a folder, the original workflow)
+32. `get_raw_files(session_id: str) -> dict` (Feature 1 — list files already in `raw/` with their tags and the checklist)
+33. `start_pipeline(session_id: str) -> dict` (Process button — run Steps 1–23; called off the GUI thread)
+34. `generate_report(session_id: str) -> str` (Feature 20 — write `results/report.pdf`; returns its path, or the structured failure dict)
 
 ---
 

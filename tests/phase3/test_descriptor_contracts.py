@@ -12,6 +12,8 @@ def test_composite_signature_has_frozen_field_order():
     })
 
     assert len(vector) == len(COMPOSITE_FIELD_ORDER) == 14
-    assert vector[:4] == [10.0, 0.0, 1.0, 2.0]
+    assert vector[0] == 10.0
+    assert math.isnan(vector[1])  # radius_std_um not supplied -> "not measured", not 0.0
+    assert vector[2:4] == [1.0, 2.0]
     assert math.isnan(vector[6])
     assert vector[-2:] == [2.0, 90.0]

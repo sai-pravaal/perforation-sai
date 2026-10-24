@@ -78,11 +78,15 @@ def fit_fourier_magnitudes(
     distances_px: List[Optional[float]],
     valid_mask: List[bool],
     order: int
-) -> List[float]:
-    """Return the magnitude sqrt(ak^2 + bk^2) for harmonics 1..order (zeros if unfittable)."""
+) -> List[Optional[float]]:
+    """Return the magnitude sqrt(ak^2 + bk^2) for harmonics 1..order (None if unfittable).
+
+    None (not 0.0) marks "not measured" so Step 20 omits it instead of treating
+    it as a genuine zero-magnitude harmonic.
+    """
     coeffs = fit_fourier_series(angles_deg, distances_px, valid_mask, order)
     if coeffs is None:
-        return [0.0] * order
+        return [None] * order
     magnitudes: List[float] = []
     for k in range(1, order + 1):
         ak = coeffs[1 + 2 * (k - 1)]
@@ -133,10 +137,16 @@ def run_step13(
             mean_radius_um = float(np.mean(valid_r)) * upp
             radius_std_um = float(np.std(valid_r)) * upp
         else:
-            mean_radius_um = 0.0
-            radius_std_um = 0.0
+            # No valid outline samples: record "not measured", not a zero radius.
+            mean_radius_um = None
+            radius_std_um = None
 
-        fourier_coeffs = fit_fourier_magnitudes(angles, distances, valid, FOURIER_FIT_ORDER)
+        # Harmonic magnitudes are radius amplitudes, so they get the same
+        # pixel -> micrometre conversion as the radius (comparable across sessions).
+        fourier_coeffs = [
+            m * upp if m is not None else None
+            for m in fit_fourier_magnitudes(angles, distances, valid, FOURIER_FIT_ORDER)
+        ]
 
         if h.type == "interior_hole":
             roundness = compute_roundness_ratio(outlines.get(h.hole_id, []))

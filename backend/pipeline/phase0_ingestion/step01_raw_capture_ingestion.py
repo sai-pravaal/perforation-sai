@@ -9,7 +9,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -18,7 +18,7 @@ try:
 except ImportError:
     rawpy = None
 
-from backend.config.capture_schema import CAPTURE_SCHEMA, validate_captured_tags
+from backend.config.capture_schema import match_filename_to_tag, validate_captured_tags  # noqa: F401 (re-exported)
 from backend.config.pipeline_constants import CAMERA_MATCH_KEYS
 from backend.session.manifest import ManifestManager
 from backend.session.session_manager import SessionManager
@@ -52,6 +52,13 @@ class RawFrameRecord:
         }
 
 
+def _srgb_to_linear(encoded: np.ndarray) -> np.ndarray:
+    """Inverse sRGB transfer function (IEC 61966-2-1) on values in [0, 1]."""
+    return np.where(
+        encoded <= 0.04045, encoded / 12.92, np.power((encoded + 0.055) / 1.055, 2.4)
+    ).astype(np.float32)
+
+
 def decode_raw_to_luminance(file_path: Path | str) -> np.ndarray:
     """Decode a RAW image file to linear luminance float32 plane [0.0, 1.0].
     
@@ -77,24 +84,19 @@ def decode_raw_to_luminance(file_path: Path | str) -> np.ndarray:
         img = cv2.imread(str(path), cv2.IMREAD_UNCHANGED)
         if img is None:
             raise ValueError(f"Unable to read image at {path}")
-        if img.ndim == 2:
-            max_val = 65535.0 if img.dtype == np.uint16 else 255.0
-            return (img.astype(np.float32) / max_val)
-        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).astype(np.float32)
         max_val = 65535.0 if img.dtype == np.uint16 else 255.0
-        rgb /= max_val
+        encoded = img.astype(np.float32) / max_val
+        if img.dtype == np.uint8:
+            # 8-bit files (JPEG/PNG) are sRGB gamma-encoded; undo the curve so
+            # every later step still sees brightness proportional to light.
+            # 16-bit inputs are assumed already linear (e.g. our own exports).
+            encoded = _srgb_to_linear(encoded)
+        if img.ndim == 2:
+            return encoded.astype(np.float32)
+        rgb = cv2.cvtColor(encoded, cv2.COLOR_BGR2RGB)
 
     luminance = (0.2126 * rgb[:, :, 0] + 0.7152 * rgb[:, :, 1] + 0.0722 * rgb[:, :, 2]).astype(np.float32)
     return luminance
-
-
-def match_filename_to_tag(filename: str) -> Optional[str]:
-    """Match filename to expected CAPTURE_SCHEMA tag based on naming convention."""
-    stem = Path(filename).stem.lower()
-    for tag in CAPTURE_SCHEMA.keys():
-        if stem == tag or stem.startswith(tag + "_") or stem.startswith(tag + "-") or stem.startswith(tag + "."):
-            return tag
-    return None
 
 
 def run_step01(
@@ -130,15 +132,14 @@ def run_step01(
         for i, t in enumerate(torches)
     }
 
-    tagged_files: Dict[str, Path] = {}
-    tagged_counts: Dict[str, int] = {}
-
-    for entry in raw_dir.iterdir():
+    # Sorted so the result never depends on directory listing order.
+    tagged_lists: Dict[str, List[Path]] = {}
+    for entry in sorted(raw_dir.iterdir(), key=lambda p: p.name.lower()):
         if entry.is_file():
             tag = match_filename_to_tag(entry.name)
             if tag:
-                tagged_files[tag] = entry
-                tagged_counts[tag] = tagged_counts.get(tag, 0) + 1
+                tagged_lists.setdefault(tag, []).append(entry)
+    tagged_counts: Dict[str, int] = {t: len(v) for t, v in tagged_lists.items()}
 
     validation_res = validate_captured_tags(tagged_counts)
     if not validation_res["ready"]:
@@ -151,9 +152,31 @@ def run_step01(
             f"Failed required tags: {failed_tags}"
         )
 
+    # RawFrameRecord holds one frame per tag. Several backlit files (a focus
+    # bracket) are accepted by the schema, but Steps 2-9 carry a single backlit
+    # frame, so the first (by name) is used and the rest are reported.
+    tagged_files: Dict[str, Path] = {}
+    for tag, paths in tagged_lists.items():
+        tagged_files[tag] = paths[0]
+        if len(paths) > 1:
+            logger.warning(
+                "Step 1: %d '%s' files supplied; using %s (focus-stack inputs are not "
+                "carried through Steps 2-9)", len(paths), tag, paths[0].name
+            )
+
     records: Dict[str, RawFrameRecord] = {}
+    reference_shape: Optional[tuple] = None
     for tag, file_path in tagged_files.items():
         brightness_plane = decode_raw_to_luminance(file_path)
+        # Every later step indexes the same pixel grid across frames.
+        if reference_shape is None:
+            reference_shape = brightness_plane.shape
+        elif brightness_plane.shape != reference_shape:
+            raise ValueError(
+                f"{file_path.name} is {brightness_plane.shape[1]}x{brightness_plane.shape[0]} px but "
+                f"earlier frames are {reference_shape[1]}x{reference_shape[0]} px; all photos in a "
+                "session must come from the same camera setup."
+            )
         meta = torch_meta_map.get(tag) if tag.startswith("torch_") else None
         record = RawFrameRecord(
             tag=tag,

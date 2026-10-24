@@ -1,4 +1,108 @@
-QMainWindow {
-    background-color: #f4f6f8;
-    color: #20252b;
+/* IPDS global dark theme (frontend spec, Application Shell > style.qss).
+   Loaded once by main.py before any window exists. Widgets opt into shared
+   styles through objectName (QFrame#card) or dynamic properties
+   (QLabel[severity="..."], QLabel[lowConfidence="true"]). */
+
+QWidget {
+    background-color: #1E1E1E;
+    color: #E0E0E0;
+    font-size: 13px;
+}
+
+QMainWindow, QDialog, QMessageBox {
+    background-color: #1E1E1E;
+}
+
+QFrame#card {
+    background-color: #262626;
+    border: 1px solid #3A3A3A;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+QLabel#cardTitle {
+    font-weight: 600;
+    background: transparent;
+}
+
+QLabel { background: transparent; }
+
+/* Tabs: 3px accent underline on the active tab, flat muted inactive tabs. */
+QTabWidget::pane { border: 1px solid #3A3A3A; border-radius: 6px; top: -1px; }
+QTabBar::tab {
+    background: transparent;
+    color: #9E9E9E;
+    padding: 8px 16px;
+    border: none;
+    border-bottom: 3px solid transparent;
+}
+QTabBar::tab:selected { color: #E0E0E0; border-bottom: 3px solid #2E7D6B; }
+QTabBar::tab:disabled { color: #5A5A5A; }
+
+/* Buttons in the primary accent. */
+QPushButton {
+    background-color: #2E7D6B;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+}
+QPushButton:hover { background-color: #4FB3A9; }
+QPushButton:pressed { background-color: #256656; }
+QPushButton:disabled { background-color: rgba(46, 125, 107, 0.4); color: rgba(255, 255, 255, 0.5); }
+QPushButton#destructive { background-color: #E53935; }
+QPushButton#destructive:hover { background-color: #EF5350; }
+
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QListWidget, QTableWidget, QTextEdit, QPlainTextEdit {
+    background-color: #262626;
+    border: 1px solid #3A3A3A;
+    border-radius: 4px;
+    padding: 4px 6px;
+    selection-background-color: #2E7D6B;
+}
+
+QHeaderView::section {
+    background-color: #262626;
+    color: #9E9E9E;
+    border: none;
+    border-bottom: 1px solid #3A3A3A;
+    padding: 4px 6px;
+}
+
+QProgressBar {
+    background-color: #262626;
+    border: 1px solid #3A3A3A;
+    border-radius: 4px;
+    text-align: center;
+}
+QProgressBar::chunk { background-color: #2E7D6B; border-radius: 3px; }
+
+QMenuBar, QMenu, QStatusBar { background-color: #1E1E1E; color: #E0E0E0; }
+QMenu::item:selected, QMenuBar::item:selected { background-color: #2E7D6B; }
+
+QToolTip {
+    background-color: #262626;
+    color: #E0E0E0;
+    border: 1px solid #2E7D6B;
+    font-family: "Consolas", "Menlo", monospace;
+}
+
+/* Status colours. */
+QLabel[status="pass"] { color: #4CAF50; }
+QLabel[status="warn"] { color: #FFB300; }
+QLabel[status="fail"] { color: #E53935; }
+
+/* Suspicion bands (Feature 18), matching Step 23's blue-to-red hole colouring. */
+QLabel[severity="low"]  { background-color: #42A5F5; color: #FFFFFF; border-radius: 10px; padding: 2px 10px; }
+QLabel[severity="medium"] { background-color: #FFB300; color: #1E1E1E; border-radius: 10px; padding: 2px 10px; }
+QLabel[severity="high"] { background-color: #E53935; color: #FFFFFF; border-radius: 10px; padding: 2px 10px; }
+QLabel[severity="warning"] { color: #FFB300; }
+
+/* Low-confidence badge (Feature 21). */
+QLabel[lowConfidence="true"] {
+    border: 1px dashed #9E9E9E;
+    color: #9E9E9E;
+    background: transparent;
+    border-radius: 4px;
+    padding: 0px 4px;
 }

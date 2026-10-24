@@ -36,7 +36,7 @@ from backend.pipeline.phase2_geometry_classification.step07_perforation_candidat
     run_step07,
 )
 from backend.pipeline.phase2_geometry_classification.step08_hole_tooth_classification import run_step08
-from backend.pipeline.phase2_geometry_classification.step09_roi_extraction import run_step09
+from backend.pipeline.phase2_geometry_classification.step09_roi_extraction import load_linear_png, run_step09
 from backend.pipeline.phase2_geometry_classification.step10_focus_stack_fusion import run_step10
 from backend.pipeline.phase3_feature_extraction.step11_subpixel_contour import run_step11
 from backend.pipeline.phase3_feature_extraction.step12_centroid_radius_profile import run_step12
@@ -77,6 +77,10 @@ PHASE_NAMES: Dict[int, str] = {
 TORCH_TAGS = ["torch_1", "torch_2", "torch_3", "torch_4"]
 FIRST_STEP = 1
 LAST_STEP = 23
+# Last step whose inputs exist only as in-memory frames from the step before it
+# (Step 6 consumes Step 5's registered frames); restarts at or before it rebuild
+# the chain from raw/.
+FRAME_CHAIN_LAST_STEP = 6
 
 
 class PipelineRunner:
@@ -91,19 +95,50 @@ class PipelineRunner:
         session_id: str,
         start_step: int = FIRST_STEP,
         progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+        require_shadow_bleed_ack: bool = True,
     ) -> Dict[str, Any]:
         """Execute steps start_step..23. Returns a summary dict.
 
         On a fresh run (start_step == 1) the version stamp is written first.
         Progress events {step_id, phase, phase_name, status} are delivered to
         progress_callback and mirrored into manifest status transitions.
+        A fresh run requires the Feature 3 shadow-bleed acknowledgement in the
+        session log; validation runs over pre-captured specimens opt out.
         """
+        if start_step == FIRST_STEP and require_shadow_bleed_ack:
+            log = self.session_manager.load_session_log(session_id) or {}
+            if not log.get("shadow_bleed_acknowledged"):
+                message = ("The shadow-bleed check has not been acknowledged for this session. "
+                           "Confirm it on the Session Log tab before processing.")
+                self._emit(progress_callback, FIRST_STEP, "failed", detail=message)
+                return {"status": "failed", "failed_step": FIRST_STEP, "error": message}
+
         manifest = self.session_manager.get_manifest_manager(session_id)
+        if start_step == FIRST_STEP:
+            # A fresh run starts from a clean slate: earlier stage entries,
+            # images, hole counters and derived files would otherwise be
+            # duplicated or double-counted.
+            manifest.invalidate_from_stage(FIRST_STEP)
+            self.session_manager.clear_outputs_from_stage(session_id, FIRST_STEP)
         manifest.set_status("in_progress")
 
         ctx: Dict[str, Any] = {"session_id": session_id}
         if start_step == FIRST_STEP:
             stamp_session(session_id, self.session_manager)
+        elif start_step <= FRAME_CHAIN_LAST_STEP:
+            # Steps 1-5 pass full-precision frames (including calibration and
+            # ball-bearing frames) only in memory, so a restart inside that
+            # chain recomputes the earlier steps from raw/ rather than loading
+            # partial on-disk copies. Their outputs are deterministic and are
+            # simply rewritten in place.
+            try:
+                for step_id in range(FIRST_STEP, start_step):
+                    self._execute_step(step_id, ctx)
+            except Exception as exc:
+                logger.exception("Rebuilding context for step %d failed", start_step)
+                manifest.set_status("failed")
+                self._emit(progress_callback, start_step, "failed", detail=str(exc))
+                return {"status": "failed", "failed_step": start_step, "error": str(exc)}
         else:
             self._rebuild_context(session_id, start_step, ctx)
 
@@ -137,6 +172,7 @@ class PipelineRunner:
         """Invalidate manifest entries at/after start_step, then resume from it."""
         manifest = self.session_manager.get_manifest_manager(session_id)
         manifest.invalidate_from_stage(start_step)
+        self.session_manager.clear_outputs_from_stage(session_id, start_step)
         return self.run(session_id, start_step=start_step, progress_callback=progress_callback)
 
     # --------------------------------------------------------------- internals
@@ -179,6 +215,13 @@ class PipelineRunner:
             ctx["candidates"] = run_step07(sid, ctx["frames"], ctx["calibration"], sm)
         elif step_id == 8:
             ctx["holes"] = run_step08(sid, ctx["candidates"], ctx["stamp_frame"], sm)
+            if not ctx["holes"]:
+                # Every later step would loop over nothing and the session would
+                # end "complete" with empty results; stop with a usable reason.
+                raise ValueError(
+                    "No perforation holes or teeth were detected in the backlit photo. "
+                    "Check the backlit exposure and the calibration scale, then re-run."
+                )
         elif step_id == 9:
             ctx["crops"] = run_step09(sid, ctx["holes"], ctx["frames"], ctx["calibration"], sm)
         elif step_id == 10:
@@ -192,7 +235,7 @@ class PipelineRunner:
         elif step_id == 14:
             ctx["patches"] = run_step14(sid, ctx["holes"], ctx["outlines"], self._working_crops(ctx), ctx["calibration"], sm)
         elif step_id == 15:
-            ctx["roughness"] = run_step15(sid, ctx["holes"], ctx["patches"], ctx["profiles"], sm)
+            ctx["roughness"] = run_step15(sid, ctx["holes"], ctx["patches"], ctx["profiles"], sm, ctx.get("calibration"))
         elif step_id == 16:
             ctx["tables"] = run_step16(sid, ctx["holes"], ctx["profiles"], self._working_crops(ctx), ctx["calibration"], sm)
         elif step_id == 17:
@@ -222,10 +265,10 @@ class PipelineRunner:
     def _rebuild_context(self, session_id: str, start_step: int, ctx: Dict[str, Any]) -> None:
         """Reconstruct the in-memory context needed to resume at start_step from disk.
 
-        Image-array inputs (frames/crops) are reloaded from persisted 8-bit PNGs
-        and, for steps after Step 6, re-oriented using the persisted rotation
-        angle; this is a documented precision caveat for image-dependent resume
-        points, to be validated with real capture data.
+        Only used for start steps after FRAME_CHAIN_LAST_STEP. Image-array
+        inputs (registered frames, crops, patches) are reloaded from the 16-bit
+        linear PNGs the steps persist and, for steps after Step 6, re-oriented
+        using the persisted rotation angle.
         """
         session_dir = self.session_manager.get_session_dir(session_id)
         stages = session_dir / "stages"
@@ -254,11 +297,13 @@ class PipelineRunner:
             if frames and stamp_frame is not None and start_step >= 7:
                 rot = stamp_frame.rotation_deg
                 for tag, rec in frames.items():
-                    rec.brightness_array = rotate_image_plane(rec.brightness_array, -rot)
+                    rec.brightness_array = rotate_image_plane(rec.brightness_array, rot)
             if frames:
                 ctx["frames"] = frames
 
-        # Per-hole crops for steps 11/14/16.
+        # Per-hole crops: step 10 fuses the raw Step 9 crops; 11/14/16 use the working set.
+        if start_step == 10 and holes:
+            ctx["crops"] = self._load_hole_crops(holes_dir, holes, prefer_fused=False)
         if 11 <= start_step <= 16 and holes:
             ctx["crops"] = self._load_hole_crops(holes_dir, holes, prefer_fused=False)
             ctx["fused"] = self._load_hole_crops(holes_dir, holes, prefer_fused=True)
@@ -268,6 +313,10 @@ class PipelineRunner:
             ctx["outlines"] = self._load_outlines(holes_dir, holes)
         if 13 <= start_step <= 16 and holes:
             ctx["profiles"] = self._load_profiles(holes_dir, holes)
+
+        # Boundary patches for step 15.
+        if start_step == 15 and holes:
+            ctx["patches"] = self._load_patches(holes_dir, holes)
 
         # Angular tables for step 17.
         if start_step == 17 and holes:
@@ -340,10 +389,9 @@ class PipelineRunner:
         torch_meta_by_tag = {t.get("torch_id"): t for t in session_log.get("torches", [])}
         for png in reg_dir.glob("*_registered.png"):
             tag = png.name[: -len("_registered.png")]
-            img = cv2.imread(str(png), cv2.IMREAD_GRAYSCALE)
-            if img is None:
+            arr = load_linear_png(png)
+            if arr is None:
                 continue
-            arr = img.astype(np.float32) / 255.0
             frames[tag] = RawFrameRecord(
                 tag=tag,
                 brightness_array=arr,
@@ -372,12 +420,25 @@ class PipelineRunner:
                     if name.startswith("fused_"):
                         continue
                     tag = name
-                img = cv2.imread(str(png), cv2.IMREAD_GRAYSCALE)
+                img = load_linear_png(png)
                 if img is not None:
-                    hole_crops[tag] = img.astype(np.float32) / 255.0
+                    hole_crops[tag] = img
             if hole_crops:
                 result[h.hole_id] = hole_crops
         return result
+
+    def _load_patches(self, holes_dir: Path, holes: List[HoleRecord]) -> Dict[str, List[np.ndarray]]:
+        out: Dict[str, List[np.ndarray]] = {}
+        for h in holes:
+            patch_dir = holes_dir / h.hole_id / "boundary_patches"
+            patches: List[np.ndarray] = []
+            if patch_dir.is_dir():
+                for png in sorted(patch_dir.glob("patch_*.png")):
+                    img = load_linear_png(png)
+                    if img is not None:
+                        patches.append(img)
+            out[h.hole_id] = patches
+        return out
 
     def _load_outlines(self, holes_dir: Path, holes: List[HoleRecord]) -> Dict[str, List[List[float]]]:
         out: Dict[str, List[List[float]]] = {}
@@ -407,7 +468,10 @@ class PipelineRunner:
         for h in holes:
             data = self._load_json(holes_dir / h.hole_id / "descriptors.json")
             if isinstance(data, dict) and "composite" in data:
-                out[h.hole_id] = data["composite"]
+                comp = dict(data["composite"])
+                # JSON stores "not measured" as null; Step 20 expects NaN.
+                comp["vector"] = [float("nan") if v is None else v for v in comp.get("vector") or []]
+                out[h.hole_id] = comp
         return out
 
     def _load_scores(self, holes_dir: Path, holes: List[HoleRecord]) -> Dict[str, Dict[str, Any]]:

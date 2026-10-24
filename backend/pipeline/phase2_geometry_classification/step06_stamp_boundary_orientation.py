@@ -15,6 +15,11 @@ from typing import Any, Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
+from backend.config.pipeline_constants import (
+    OUTPUT_DISPLAY_GAMMA,
+    STAMP_ROTATION_WARN_DEG,
+    STAMP_THRESHOLD_BLUR_PX,
+)
 from backend.pipeline.phase0_ingestion.step01_raw_capture_ingestion import RawFrameRecord
 from backend.session.manifest import ManifestManager
 from backend.session.session_manager import SessionManager
@@ -54,7 +59,7 @@ def detect_stamp_orientation(
     h, w = img_u8.shape
 
     # Separate stamp from dark backdrop using Otsu threshold
-    blur = cv2.GaussianBlur(img_u8, (5, 5), 0)
+    blur = cv2.GaussianBlur(img_u8, (STAMP_THRESHOLD_BLUR_PX, STAMP_THRESHOLD_BLUR_PX), 0)
     _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     # Find external contours
@@ -80,7 +85,11 @@ def detect_stamp_orientation(
 
     # Approx polygon
     poly = largest_cnt.reshape(-1, 2).tolist()
-    bbox = [float(cx - rw / 2.0), float(cy - rh / 2.0), float(rw), float(rh)]
+    # Axis-aligned bbox in image axes. minAreaRect's (rw, rh) follow the
+    # rectangle's own axes and can come back swapped (e.g. angle 90 for an
+    # axis-aligned stamp), so they must not be used as image width/height.
+    bx, by, bw, bh = cv2.boundingRect(largest_cnt)
+    bbox = [float(bx), float(by), float(bw), float(bh)]
 
     return float(angle), poly, bbox
 
@@ -119,10 +128,12 @@ def run_step06(
     diffuse_frame = frames["diffuse"]
     angle_deg, raw_poly, raw_bbox = detect_stamp_orientation(diffuse_frame.brightness_array)
 
-    # Rotate all frames by -angle_deg so stamp edges become axis-aligned
+    # minAreaRect reports the tilt clockwise in image coordinates, while
+    # getRotationMatrix2D treats positive angles as counter-clockwise, so
+    # rotating by +angle_deg cancels the tilt and axis-aligns the stamp edges.
     normalized_frames: Dict[str, RawFrameRecord] = {}
     for tag, frame in frames.items():
-        rot_array = rotate_image_plane(frame.brightness_array, -angle_deg)
+        rot_array = rotate_image_plane(frame.brightness_array, angle_deg)
         normalized_frames[tag] = RawFrameRecord(
             tag=tag,
             brightness_array=rot_array,
@@ -140,10 +151,29 @@ def run_step06(
         stamp_bbox=final_bbox
     )
 
+    # Spec side-check: the operator aligns the torch azimuth 0-degree mark with
+    # the stamp's row direction, so a large tilt means the two disagree and the
+    # torch azimuths (Step 17) are not where the session log says.
+    payload = stamp_frame.to_dict()
+    if abs(angle_deg) > STAMP_ROTATION_WARN_DEG:
+        warning = (f"Stamp is rotated {angle_deg:.1f} deg in the frame; the torch azimuth 0-degree mark "
+                   "may not be aligned with the stamp rows. Check the rig before trusting shadow results.")
+        logger.warning("Step 6: %s", warning)
+        payload["alignment_warning"] = warning
+
     # Persist StampFrame
     out_path = stages_dir / "stamp_frame.json"
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(stamp_frame.to_dict(), f, indent=2)
+        json.dump(payload, f, indent=2)
+
+    # Feature 6 thumbnail: straightened overview with the detected boundary.
+    preview = np.power(np.clip(norm_diffuse, 0.0, 1.0), 1.0 / OUTPUT_DISPLAY_GAMMA)
+    preview = cv2.cvtColor((preview * 255.0).astype(np.uint8), cv2.COLOR_GRAY2BGR)
+    poly = np.array(final_poly, dtype=np.int32).reshape(-1, 1, 2)
+    if poly.size:
+        cv2.polylines(preview, [poly], isClosed=True, color=(0, 200, 255), thickness=max(1, preview.shape[1] // 600))
+    cv2.imwrite(str(stages_dir / "stamp_boundary.png"), preview)
+    manifest.add_image_entry(path="stages/stamp_boundary.png", stage="stamp_boundary")
 
     manifest.add_stage_entry(
         step_id=6,

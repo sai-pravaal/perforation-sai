@@ -60,6 +60,32 @@ def fit_circle_center(outline: np.ndarray) -> Tuple[float, float]:
         return cx0, cy0
 
 
+def _ray_outline_distance(pts: np.ndarray, cx: float, cy: float, theta: float) -> Optional[float]:
+    """Distance from the centre to where the ray at angle theta crosses the outline.
+
+    The crossing is interpolated along the polyline segment it hits, so the
+    radius belongs to exactly this angle (no nearest-vertex angle error).
+    Closed outlines from marching squares repeat their first point, so their
+    segment list is already closed; an open arc (tooth) only yields a value
+    where the ray actually meets the visible boundary, and None ("no data")
+    otherwise. With several crossings the nearest is used.
+    """
+    p0 = pts[:-1]
+    p1 = pts[1:]
+    d = np.array([math.cos(theta), math.sin(theta)])
+    seg = p1 - p0
+    rel = p0 - np.array([cx, cy])
+    # Solve c + t*d = p0 + s*seg for t (along ray) and s (along segment).
+    denom = d[0] * seg[:, 1] - d[1] * seg[:, 0]
+    ok = np.abs(denom) > 1e-12
+    t = np.where(ok, (rel[:, 0] * seg[:, 1] - rel[:, 1] * seg[:, 0]) / np.where(ok, denom, 1.0), np.nan)
+    s = np.where(ok, (rel[:, 0] * d[1] - rel[:, 1] * d[0]) / np.where(ok, denom, 1.0), np.nan)
+    hit = ok & (t > 0) & (s >= 0) & (s <= 1)
+    if not np.any(hit):
+        return None
+    return float(np.min(t[hit]))
+
+
 def build_radius_profile(
     outline: List[List[float]],
     hole_type: Optional[str]
@@ -83,22 +109,12 @@ def build_radius_profile(
     else:
         cx, cy = _moments_center(pts)
 
-    dx = pts[:, 0] - cx
-    dy = pts[:, 1] - cy
-    vertex_ang = np.degrees(np.arctan2(dy, dx)) % 360.0
-    vertex_rad = np.hypot(dx, dy)
-
     distances: List[Optional[float]] = []
     valid: List[bool] = []
     for a in angles_deg:
-        diff = np.abs(((vertex_ang - a + 180.0) % 360.0) - 180.0)
-        nearest = int(np.argmin(diff))
-        if diff[nearest] <= step_deg:
-            distances.append(float(vertex_rad[nearest]))
-            valid.append(True)
-        else:
-            distances.append(None)
-            valid.append(False)
+        r = _ray_outline_distance(pts, cx, cy, math.radians(a))
+        distances.append(r)
+        valid.append(r is not None)
 
     return {
         "center_px": [float(cx), float(cy)],

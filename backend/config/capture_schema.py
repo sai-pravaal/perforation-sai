@@ -5,6 +5,7 @@ It is shared directly between Feature 1 (Pre-Flight Capture Checklist) and
 Step 1 (Raw Capture Ingestion) to ensure consistent validation.
 """
 
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 # Schema definition for capture images:
@@ -87,6 +88,20 @@ CAPTURE_SCHEMA: Dict[str, Dict[str, Any]] = {
         "description": "Optional chrome ball bearing torch 4 photograph for Path B calibration"
     }
 }
+
+
+def match_filename_to_tag(filename: str) -> Optional[str]:
+    """Map a capture filename to its CAPTURE_SCHEMA tag by naming convention.
+
+    'torch_1.RAF', 'torch_1_a.CR2' and 'torch_1-2.NEF' all map to 'torch_1'.
+    Longer tags are tried first so 'ball_bearing_torch_1' is never read as
+    'torch_1'. Shared by upload validation and Step 1 so both always agree.
+    """
+    stem = Path(filename).stem.lower()
+    for tag in sorted(CAPTURE_SCHEMA.keys(), key=len, reverse=True):
+        if stem == tag or stem.startswith((tag + "_", tag + "-", tag + ".")):
+            return tag
+    return None
 
 
 def validate_captured_tags(tagged_counts: Dict[str, int]) -> Dict[str, Any]:

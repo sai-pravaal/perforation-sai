@@ -1,88 +1,203 @@
-"""Comparison and hole-inspection view for Phase 13."""
+"""View tab: filterable gallery, image comparison and hover tooltips (Features 8-11)."""
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Dict, List, Optional
 
-from PySide6.QtWidgets import QFormLayout, QLabel, QLineEdit, QListWidget, QPushButton, QVBoxLayout, QWidget
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
+)
 
 from frontend.client import Client
-from frontend.widgets.breakdown_table import BreakdownTable
-from frontend.widgets.graphics_view_sync import GraphicsViewSync
+from frontend.widgets.graphics_view_sync import GraphicsViewSync, load_display_pixmap
+
+ALL = "All"
+# Manifest image stage labels written by the pipeline, with readable names.
+STAGE_LABELS = {
+    "registration": "Registration (step 5)",
+    "stamp_boundary": "Stamp boundary (step 6)",
+    "roi_crop": "Hole crops (step 9)",
+    "subpixel_contour": "Subpixel contour (step 11)",
+    "final_output": "Annotated overview (step 23)",
+}
+EDGES = ["top", "bottom", "left", "right"]
+GALLERY_ICON = 96
 
 
 class ViewTab(QWidget):
-    """Query gallery items and inspect comparison or hole details through Client."""
+    """Gallery on the left, comparison panel on the right (resizable splitter)."""
 
     def __init__(self, client: Optional[Client] = None) -> None:
         super().__init__()
         self.client = client or Client()
-        self.session_id = QLineEdit()
-        self.image_a = QLineEdit()
-        self.image_b = QLineEdit()
-        self.hole_id = QLineEdit()
-        self.message = QLabel("No view data loaded.")
+        self._session_id: Optional[str] = None
+        self._slots: List[Optional[Dict[str, Any]]] = [None, None]
+        self._tooltip_cache: Dict[str, str] = {}
+
+        # Filter bar (Feature 10)
+        self.stage_filter = QComboBox()
+        self.stage_filter.addItem(ALL, None)
+        for key, label in STAGE_LABELS.items():
+            self.stage_filter.addItem(label, key)
+        self.hole_filter = QComboBox()
+        self.hole_filter.addItem(ALL, None)
+        self.edge_filter = QComboBox()
+        self.edge_filter.addItem(ALL, None)
+        for e in EDGES:
+            self.edge_filter.addItem(e.title(), e)
+        self.flagged_only = QCheckBox("Flagged only")
+        for combo in (self.stage_filter, self.hole_filter, self.edge_filter):
+            combo.currentIndexChanged.connect(self.refresh_gallery)
+        self.flagged_only.toggled.connect(self.refresh_gallery)
+        filters = QHBoxLayout()
+        for label, widget in (("Stage", self.stage_filter), ("Hole", self.hole_filter), ("Edge", self.edge_filter)):
+            filters.addWidget(QLabel(label))
+            filters.addWidget(widget)
+        filters.addWidget(self.flagged_only)
+        filters.addStretch(1)
+
         self.gallery = QListWidget()
+        self.gallery.setViewMode(QListWidget.ViewMode.IconMode)
+        self.gallery.setIconSize(QSize(GALLERY_ICON, GALLERY_ICON))
+        self.gallery.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.gallery.setMouseTracking(True)
+        self.gallery.itemClicked.connect(self._on_item_clicked)
+        self.gallery.itemEntered.connect(self._on_item_hovered)
+        hint = QLabel("Click: image A · Ctrl+click: image B")
+        hint.setProperty("status", "")
+
+        left = QWidget()
+        left_layout = QVBoxLayout(left)
+        left_layout.addLayout(filters)
+        left_layout.addWidget(self.gallery)
+        left_layout.addWidget(hint)
+
         self.comparison = GraphicsViewSync()
-        self.breakdown = BreakdownTable()
+        self.message = QLabel("Choose a session to see its images.")
+        right = QWidget()
+        right_layout = QVBoxLayout(right)
+        right_layout.addWidget(self.comparison)
+        right_layout.addWidget(self.message)
 
-        form = QFormLayout()
-        form.addRow("Session", self.session_id)
-        form.addRow("Image A", self.image_a)
-        form.addRow("Image B", self.image_b)
-        form.addRow("Hole", self.hole_id)
-        gallery_button = QPushButton("Refresh gallery")
-        gallery_button.clicked.connect(self.refresh_gallery)
-        compare_button = QPushButton("Compare images")
-        compare_button.clicked.connect(self.compare_images)
-        tooltip_button = QPushButton("Load hole tooltip")
-        tooltip_button.clicked.connect(self.load_tooltip)
-        breakdown_button = QPushButton("Load hole breakdown")
-        breakdown_button.clicked.connect(self.load_breakdown)
-
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        splitter.addWidget(left)
+        splitter.addWidget(right)
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 7)
         layout = QVBoxLayout(self)
-        layout.addLayout(form)
-        layout.addWidget(gallery_button)
-        layout.addWidget(compare_button)
-        layout.addWidget(tooltip_button)
-        layout.addWidget(breakdown_button)
-        layout.addWidget(self.gallery)
-        layout.addWidget(self.comparison)
-        layout.addWidget(self.breakdown)
-        layout.addWidget(self.message)
+        layout.addWidget(splitter)
 
+    # ------------------------------------------------------------ session
+    def set_session_id(self, session_id: Optional[str]) -> None:
+        self._session_id = session_id or None
+        self._tooltip_cache.clear()
+        self._slots = [None, None]
+        self.refresh_gallery()
+
+    def showEvent(self, event) -> None:  # noqa: N802 (Qt override)
+        super().showEvent(event)
+        if self._session_id:
+            self.refresh_gallery()
+
+    # ------------------------------------------------------------ gallery
     def refresh_gallery(self) -> None:
-        """Load gallery records using the backend query endpoint."""
-        response = self.client.call("query_gallery", self.session_id.text().strip(), {})
-        if response.get("success") is False:
-            self.message.setText(response.get("error", "Unable to load gallery."))
-            return
-        records = response.get("result", response)
+        """Feature 10: re-query the gallery with the current filter state."""
         self.gallery.clear()
-        for record in records if isinstance(records, list) else []:
-            self.gallery.addItem(f"{record.get('stage', 'unknown')}: {record.get('path', '')}")
-        self.message.setText(f"Gallery entries: {self.gallery.count()}")
+        if not self._session_id:
+            return
+        filters = {
+            "stage": self.stage_filter.currentData(),
+            "hole_id": self.hole_filter.currentData(),
+            "edge": self.edge_filter.currentData(),
+            "flagged_only": self.flagged_only.isChecked(),
+        }
+        records, error = Client.unwrap(self.client.call("query_gallery", self._session_id, filters),
+                                       "Unable to load gallery.")
+        if error:
+            self.message.setText(error)
+            return
+        records = records or []
+        self._refresh_hole_choices(records)
+        for record in records:
+            item = QListWidgetItem(f"{STAGE_LABELS.get(record.get('stage'), record.get('stage', ''))}\n"
+                                   f"{record.get('hole_id') or ''}".strip())
+            pixmap = load_display_pixmap(record.get("abs_path"))
+            if not pixmap.isNull():
+                item.setIcon(QIcon(pixmap.scaled(GALLERY_ICON, GALLERY_ICON, Qt.AspectRatioMode.KeepAspectRatio,
+                                                 Qt.TransformationMode.SmoothTransformation)))
+            item.setData(Qt.ItemDataRole.UserRole, record)
+            self.gallery.addItem(item)
+        self.message.setText(f"{self.gallery.count()} image(s).")
+
+    def _refresh_hole_choices(self, records: List[Dict[str, Any]]) -> None:
+        if self.hole_filter.currentData() is not None:
+            return  # keep the user's current choice and list
+        holes = sorted({r.get("hole_id") for r in records if r.get("hole_id")})
+        self.hole_filter.blockSignals(True)
+        self.hole_filter.clear()
+        self.hole_filter.addItem(ALL, None)
+        for hid in holes:
+            self.hole_filter.addItem(hid, hid)
+        self.hole_filter.blockSignals(False)
+
+    # --------------------------------------------------------- comparison
+    def _on_item_clicked(self, item: QListWidgetItem) -> None:
+        record = item.data(Qt.ItemDataRole.UserRole) or {}
+        ctrl = bool(QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier)
+        self._assign(1 if ctrl else 0, record)
+
+    def select_image(self, record: Dict[str, Any]) -> None:
+        """Pre-select an image clicked in the Processing tab's thumbnail strip."""
+        self._assign(0, record)
+
+    def _assign(self, slot: int, record: Dict[str, Any]) -> None:
+        self._slots[slot] = record
+        self.comparison.set_slot(slot, record)
+        if all(self._slots):
+            self.compare_images()
 
     def compare_images(self) -> None:
-        """Load a comparison pair through the backend API."""
-        response = self.client.call("get_comparison_pair", self.session_id.text().strip(), self.image_a.text().strip(), self.image_b.text().strip())
-        if response.get("success") is False:
-            self.message.setText(response.get("error", "Unable to load comparison."))
+        """Feature 8: resolve both selections through the backend and render the pair."""
+        a, b = self._slots
+        if not (a and b and self._session_id):
             return
-        payload = response.get("result", response)
-        self.comparison.set_pair(payload.get("pair", []) if isinstance(payload, dict) else [])
+        payload, error = Client.unwrap(
+            self.client.call("get_comparison_pair", self._session_id, a.get("path"), b.get("path")),
+            "Unable to load comparison.")
+        if error:
+            self.message.setText(error)
+            return
+        self.comparison.set_pair(payload.get("pair", []))
         self.message.setText("Comparison loaded.")
 
-    def load_tooltip(self) -> None:
-        """Load compact hole details through the backend API."""
-        response = self.client.call("get_hole_tooltip", self.session_id.text().strip(), self.hole_id.text().strip())
-        payload = response.get("result", response)
-        self.breakdown.update_tooltip(payload if isinstance(payload, dict) else {})
-        self.message.setText("Hole tooltip loaded.")
+    # ------------------------------------------------------------ tooltips
+    def _on_item_hovered(self, item: QListWidgetItem) -> None:
+        """Feature 11: attach the hole's descriptor values as the item tooltip (cached per hole)."""
+        record = item.data(Qt.ItemDataRole.UserRole) or {}
+        hole_id = record.get("hole_id")
+        if not hole_id or not self._session_id or item.toolTip():
+            return
+        text = self._tooltip_cache.get(hole_id)
+        if text is None:
+            payload, _error = Client.unwrap(self.client.call("get_hole_tooltip", self._session_id, hole_id))
+            payload = payload or {}
+            text = f"{hole_id}\n{payload.get('summary', 'No values available yet.')}"
+            if payload.get("low_confidence"):
+                text += "\nLC: pooled comparison group (fewer than 5 holes on this edge)"
+            self._tooltip_cache[hole_id] = text
+        item.setToolTip(text)
 
-    def load_breakdown(self) -> None:
-        """Load the selected hole's descriptor breakdown."""
-        response = self.client.call("get_hole_breakdown", self.session_id.text().strip(), self.hole_id.text().strip())
-        payload = response.get("result", response)
-        self.breakdown.update_breakdown(payload if isinstance(payload, dict) else {})
-        self.message.setText("Hole breakdown loaded.")
+    # Kept for callers of the earlier interface.
+    def load_tooltip(self, hole_id: str) -> str:
+        return self._tooltip_cache.get(hole_id, "")

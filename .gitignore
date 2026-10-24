@@ -4,3 +4,8 @@ __pycache__/
 .claude/
 *.pyc
 
+
+# Runtime data written by the app (sessions, validation runs, exported archives).
+# Already-tracked files such as data/sessions/demo_session stay tracked until removed deliberately.
+data/sessions/*
+data/*.zip
