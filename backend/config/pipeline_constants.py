@@ -35,7 +35,7 @@ COMPOSITE_FIELD_ORDER: List[str] = [
 # -------------------------------------------------------------------------
 # Step 2: Lens Distortion & Pixel-to-Physical-Unit Calibration
 # -------------------------------------------------------------------------
-CALIBRATION_PATTERN_SPACING_UM: float = 2000.0       # Known centre-to-centre spacing of the printed target (spec example: 2 mm)
+CALIBRATION_PATTERN_SPACING_UM: float = 1000.0       # Known centre-to-centre spacing of the printed target (our target: 7x7 dots, 1.000 mm pitch, 0.25 mm dots)
 CALIBRATION_PATTERN_SIZE: Tuple[int, int] = (7, 7)   # Inner points per row, per column of the target grid
 CALIBRATION_DETECTION_GAMMA: float = 2.2             # Display gamma applied to the detection copy only (frames stay linear)
 
