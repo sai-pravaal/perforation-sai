@@ -21,6 +21,7 @@ from backend.config.pipeline_constants import (
     STAMP_THRESHOLD_BLUR_PX,
 )
 from backend.pipeline.phase0_ingestion.step01_raw_capture_ingestion import RawFrameRecord
+from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import stamp_silhouette
 from backend.session.manifest import ManifestManager
 from backend.session.session_manager import SessionManager
 
@@ -49,18 +50,27 @@ class StampFrame:
 
 
 def detect_stamp_orientation(
-    diffuse_image: np.ndarray
+    diffuse_image: np.ndarray,
+    backlit: bool = False
 ) -> Tuple[float, List[List[float]], List[float]]:
     """Detect stamp outer boundary and compute rotation angle to square it to axes.
-    
+
+    backlit=True: the image is the (registered) backlit frame, where the paper
+    is dark against the bright light box, so the outline is the filled
+    silhouette of the largest dark region (the same silhouette Step 7 cuts
+    the edge notches from). Otherwise the diffuse frame is split from its
+    backdrop with Otsu.
+
     Returns (rotation_deg, boundary_polygon, stamp_bbox).
     """
     img_u8 = (np.clip(diffuse_image, 0.0, 1.0) * 255.0).astype(np.uint8)
     h, w = img_u8.shape
 
-    # Separate stamp from dark backdrop using Otsu threshold
     blur = cv2.GaussianBlur(img_u8, (STAMP_THRESHOLD_BLUR_PX, STAMP_THRESHOLD_BLUR_PX), 0)
     _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    if backlit:
+        silhouette = stamp_silhouette(thresh)
+        thresh = silhouette if silhouette is not None else cv2.bitwise_not(thresh)
 
     # Find external contours
     cnts, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -125,8 +135,14 @@ def run_step06(
     if "diffuse" not in frames:
         raise KeyError("Missing required 'diffuse' frame for Step 6")
 
-    diffuse_frame = frames["diffuse"]
-    angle_deg, raw_poly, raw_bbox = detect_stamp_orientation(diffuse_frame.brightness_array)
+    # The outline comes from the registered backlit frame when present: with
+    # a dark-grey backdrop (as in the reference captures) the diffuse frame
+    # gives too little stamp/backdrop contrast and Otsu outlined only one lit
+    # corner of the stamp. Step 5 registered the backlit frame onto the
+    # diffuse one, so both share coordinates.
+    outline_tag = "backlit" if "backlit" in frames else "diffuse"
+    use_backlit = outline_tag == "backlit"
+    angle_deg, raw_poly, raw_bbox = detect_stamp_orientation(frames[outline_tag].brightness_array, use_backlit)
 
     # minAreaRect reports the tilt clockwise in image coordinates, while
     # getRotationMatrix2D treats positive angles as counter-clockwise, so
@@ -143,7 +159,7 @@ def run_step06(
 
     # Re-derive axis-aligned boundary on rotated diffuse frame
     norm_diffuse = normalized_frames["diffuse"].brightness_array
-    _, final_poly, final_bbox = detect_stamp_orientation(norm_diffuse)
+    _, final_poly, final_bbox = detect_stamp_orientation(normalized_frames[outline_tag].brightness_array, use_backlit)
 
     stamp_frame = StampFrame(
         boundary_polygon=final_poly,

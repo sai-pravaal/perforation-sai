@@ -199,3 +199,23 @@ def test_manifest_image_entry_replaced_not_duplicated(tmp_path):
     paths = [img["path"] for img in m.load()["images"]]
     assert sorted(paths) == ["holes/a/crops/backlit.png", "stages/stamp_boundary.png"]
     assert second > first
+
+
+def test_step07_finds_each_edge_notch_of_a_separated_stamp():
+    """PIPE-07: notches open to the bright background are found one per notch."""
+    from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import (
+        detect_perforation_candidates)
+    upp = 10.0                      # 1.2 mm holes -> radius 60 px
+    img = np.ones((1400, 1800), np.float32)                      # bright light box
+    cv2.rectangle(img, (300, 300), (1500, 1100), 0.1, -1)        # paper
+    xs = range(500, 1400, 200)                                   # 5 notches top and bottom
+    ys = range(500, 1000, 200)                                   # 3 notches left and right
+    for x in xs:
+        cv2.circle(img, (x, 300), 60, 1.0, -1)
+        cv2.circle(img, (x, 1100), 60, 1.0, -1)
+    for y in ys:
+        cv2.circle(img, (300, y), 60, 1.0, -1)
+        cv2.circle(img, (1500, y), 60, 1.0, -1)
+    cv2.circle(img, (900, 700), 60, 1.0, -1)                     # one interior (closed) hole
+    found = detect_perforation_candidates(img, upp)
+    assert len(found) == 2 * len(xs) + 2 * len(ys) + 1

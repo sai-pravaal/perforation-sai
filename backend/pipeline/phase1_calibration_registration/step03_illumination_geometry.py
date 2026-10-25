@@ -130,8 +130,10 @@ def run_step03(
     # Stamp tilt in the raw frame (the same measurement Step 6 later cancels),
     # used to rotate Path B's image-frame azimuths into the stamp frame.
     stamp_tilt_deg = 0.0
-    if ball_bearing_used and "diffuse" in frames:
-        stamp_tilt_deg, _, _ = detect_stamp_orientation(frames["diffuse"].brightness_array)
+    if ball_bearing_used and ("backlit" in frames or "diffuse" in frames):
+        outline_tag = "backlit" if "backlit" in frames else "diffuse"  # same source as Step 6
+        stamp_tilt_deg, _, _ = detect_stamp_orientation(frames[outline_tag].brightness_array,
+                                                        outline_tag == "backlit")
 
     for i in range(1, 5):
         tag = f"torch_{i}"

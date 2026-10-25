@@ -79,6 +79,12 @@ HOLE_AREA_MIN_FRACTION: float = 0.3             # Min area as a fraction of the 
 HOLE_AREA_MAX_FACTOR: float = 2.0               # Max area as a multiple of the max circle
 HOLE_OVERSIZE_REVIEW_FACTOR: float = 6.0        # Blobs up to this x the max area are flagged for review, larger ignored
 HOLE_THRESHOLD_BLUR_PX: int = 3                 # Gaussian pre-blur (odd) before the backlit Otsu split
+# Edge notches (teeth of a separated stamp) are found as closing(silhouette) - silhouette.
+# The disk must be wider than one notch (~ hole diameter) but small enough not to
+# bridge a gently bowed edge; 1.8 mm = 1.5 x the nominal 1.2 mm hole. Coarse gauges
+# with holes near or above 1.8 mm need a larger value.
+NOTCH_CLOSING_DIAMETER_UM: float = 1800.0
+NOTCH_CLOSING_DOWNSCALE: int = 4                # Closing runs on a mask reduced by this factor (speed); difference at full size
 
 # -------------------------------------------------------------------------
 # Step 8: Hole-Type Classification
@@ -244,6 +250,8 @@ def get_pipeline_constants_dict() -> Dict[str, Any]:
         "STAMP_ROTATION_WARN_DEG": STAMP_ROTATION_WARN_DEG,
         "STAMP_THRESHOLD_BLUR_PX": STAMP_THRESHOLD_BLUR_PX,
         "HOLE_THRESHOLD_BLUR_PX": HOLE_THRESHOLD_BLUR_PX,
+        "NOTCH_CLOSING_DIAMETER_UM": NOTCH_CLOSING_DIAMETER_UM,
+        "NOTCH_CLOSING_DOWNSCALE": NOTCH_CLOSING_DOWNSCALE,
         "REGISTRATION_RANSAC_REPROJ_PX": REGISTRATION_RANSAC_REPROJ_PX,
         "OUTPUT_MARKER_RADIUS_FRACTION": OUTPUT_MARKER_RADIUS_FRACTION,
         "HOLE_MIN_DIAMETER_MM": HOLE_MIN_DIAMETER_MM,
