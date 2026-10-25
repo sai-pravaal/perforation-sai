@@ -77,6 +77,15 @@ def fuse_focus_stack(images: List[np.ndarray]) -> np.ndarray:
     return fused.astype(np.float32)
 
 
+def fuse_hole_crops(hole_crops: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+    """Fused crop per lighting tag for one hole (no file I/O).
+
+    With single-exposure capture each tag is its own one-image stack, so the
+    crop passes through unchanged.
+    """
+    return {tag: fuse_focus_stack([crop_arr]) for tag, crop_arr in hole_crops.items()}
+
+
 def run_step10(
     session_id: str,
     holes: List[HoleRecord],
@@ -99,13 +108,9 @@ def run_step10(
         h_dir = holes_dir / h_id / "crops"
         h_dir.mkdir(parents=True, exist_ok=True)
 
-        fused_h: Dict[str, np.ndarray] = {}
-        for tag, crop_arr in h_crops.items():
-            # In standard single-exposure capture, fuse_focus_stack simply preserves the sharp image
-            fused = fuse_focus_stack([crop_arr])
-            fused_h[tag] = fused
-
-            # Save fused image to disk at 16-bit linear precision
+        fused_h = fuse_hole_crops(h_crops)
+        for tag, fused in fused_h.items():
+            # Gallery copy only; later steps use the in-memory float32 crops.
             save_linear_png(h_dir / f"fused_{tag}.png", fused)
 
         fused_crops[h_id] = fused_h

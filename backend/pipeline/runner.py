@@ -36,12 +36,17 @@ from backend.pipeline.phase2_geometry_classification.step07_perforation_candidat
     run_step07,
 )
 from backend.pipeline.phase2_geometry_classification.step08_hole_tooth_classification import run_step08
-from backend.pipeline.phase2_geometry_classification.step09_roi_extraction import load_linear_png, run_step09
-from backend.pipeline.phase2_geometry_classification.step10_focus_stack_fusion import run_step10
+from backend.pipeline.phase2_geometry_classification.step09_roi_extraction import (
+    compute_crop_size_px,
+    extract_hole_crops,
+    load_linear_png,
+    run_step09,
+)
+from backend.pipeline.phase2_geometry_classification.step10_focus_stack_fusion import fuse_hole_crops, run_step10
 from backend.pipeline.phase3_feature_extraction.step11_subpixel_contour import run_step11
 from backend.pipeline.phase3_feature_extraction.step12_centroid_radius_profile import run_step12
 from backend.pipeline.phase3_feature_extraction.step13_shape_deviation_descriptor import run_step13
-from backend.pipeline.phase3_feature_extraction.step14_boundary_texture_sampling import run_step14
+from backend.pipeline.phase3_feature_extraction.step14_boundary_texture_sampling import PATCH_ARRAY_FILE, run_step14
 from backend.pipeline.phase3_feature_extraction.step15_roughness_descriptor import run_step15
 from backend.pipeline.phase3_feature_extraction.step16_angular_brightness_sampling import run_step16
 from backend.pipeline.phase3_feature_extraction.step17_directional_profile_fitting import run_step17
@@ -81,6 +86,9 @@ LAST_STEP = 23
 # (Step 6 consumes Step 5's registered frames); restarts at or before it rebuild
 # the chain from raw/.
 FRAME_CHAIN_LAST_STEP = 6
+# Last step that measures on image data (Step 16 samples the torch crops);
+# restarts up to here rebuild frames and crops from raw/ at full precision.
+LAST_IMAGE_STEP = 16
 
 
 class PipelineRunner:
@@ -125,22 +133,24 @@ class PipelineRunner:
         ctx: Dict[str, Any] = {"session_id": session_id}
         if start_step == FIRST_STEP:
             stamp_session(session_id, self.session_manager)
-        elif start_step <= FRAME_CHAIN_LAST_STEP:
-            # Steps 1-5 pass full-precision frames (including calibration and
-            # ball-bearing frames) only in memory, so a restart inside that
-            # chain recomputes the earlier steps from raw/ rather than loading
-            # partial on-disk copies. Their outputs are deterministic and are
-            # simply rewritten in place.
+        else:
+            # Measurement frames exist at full precision only in memory (the
+            # PNGs on disk are rounded, clipped display copies). A restart that
+            # needs image data therefore recomputes the frame chain (Steps 1-6)
+            # from the RAW files in raw/; those steps are deterministic and
+            # their outputs are simply rewritten in place.
+            replay_to = (start_step - 1 if start_step <= FRAME_CHAIN_LAST_STEP
+                         else FRAME_CHAIN_LAST_STEP if start_step <= LAST_IMAGE_STEP else 0)
             try:
-                for step_id in range(FIRST_STEP, start_step):
+                for step_id in range(FIRST_STEP, replay_to + 1):
                     self._execute_step(step_id, ctx)
+                if start_step > FRAME_CHAIN_LAST_STEP:
+                    self._rebuild_context(session_id, start_step, ctx)
             except Exception as exc:
                 logger.exception("Rebuilding context for step %d failed", start_step)
                 manifest.set_status("failed")
                 self._emit(progress_callback, start_step, "failed", detail=str(exc))
                 return {"status": "failed", "failed_step": start_step, "error": str(exc)}
-        else:
-            self._rebuild_context(session_id, start_step, ctx)
 
         for step_id in range(start_step, LAST_STEP + 1):
             self._emit(progress_callback, step_id, "started")
@@ -265,48 +275,53 @@ class PipelineRunner:
     def _rebuild_context(self, session_id: str, start_step: int, ctx: Dict[str, Any]) -> None:
         """Reconstruct the in-memory context needed to resume at start_step from disk.
 
-        Only used for start steps after FRAME_CHAIN_LAST_STEP. Image-array
-        inputs (registered frames, crops, patches) are reloaded from the 16-bit
-        linear PNGs the steps persist and, for steps after Step 6, re-oriented
-        using the persisted rotation angle.
+        Only used for start steps after FRAME_CHAIN_LAST_STEP. For restarts up
+        to LAST_IMAGE_STEP the caller has already replayed Steps 1-6 from raw/,
+        so frames and crops are full precision; patches come from Step 14's
+        float32 array. Only Step 23's drawing canvas uses a PNG display copy.
         """
         session_dir = self.session_manager.get_session_dir(session_id)
         stages = session_dir / "stages"
         holes_dir = session_dir / "holes"
 
-        calibration = self._load_calibration(stages)
-        if calibration is not None:
-            ctx["calibration"] = calibration
+        # Steps 1-6 were already replayed from raw/ for image-dependent restarts;
+        # their in-memory results take precedence over the JSON copies.
+        if "calibration" not in ctx:
+            calibration = self._load_calibration(stages)
+            if calibration is not None:
+                ctx["calibration"] = calibration
 
-        illum = self._load_json(stages / "illumination_geometry.json")
-        if isinstance(illum, list):
-            ctx["illumination"] = illum
+        if "illumination" not in ctx:
+            illum = self._load_json(stages / "illumination_geometry.json")
+            if isinstance(illum, list):
+                ctx["illumination"] = illum
 
-        stamp_frame = self._load_stamp_frame(stages)
-        if stamp_frame is not None:
-            ctx["stamp_frame"] = stamp_frame
+        if "stamp_frame" not in ctx:
+            stamp_frame = self._load_stamp_frame(stages)
+            if stamp_frame is not None:
+                ctx["stamp_frame"] = stamp_frame
+        stamp_frame = ctx.get("stamp_frame")
 
         holes = self._load_holes(stages)
         if holes:
             ctx["holes"] = holes
             ctx["reference_groups"] = build_reference_groups(holes)
 
-        # Image frames (normalized to Step 6 orientation) for steps 7..16, 23.
-        if start_step <= 16 or start_step == 23:
+        # Step 23 only draws on the overview, so the display copy is enough there.
+        if start_step == 23 and "frames" not in ctx:
             frames = self._load_registered_frames(session_id, session_dir)
-            if frames and stamp_frame is not None and start_step >= 7:
-                rot = stamp_frame.rotation_deg
-                for tag, rec in frames.items():
-                    rec.brightness_array = rotate_image_plane(rec.brightness_array, rot)
+            if frames and stamp_frame is not None:
+                for rec in frames.values():
+                    rec.brightness_array = rotate_image_plane(rec.brightness_array, stamp_frame.rotation_deg)
             if frames:
                 ctx["frames"] = frames
 
-        # Per-hole crops: step 10 fuses the raw Step 9 crops; 11/14/16 use the working set.
-        if start_step == 10 and holes:
-            ctx["crops"] = self._load_hole_crops(holes_dir, holes, prefer_fused=False)
-        if 11 <= start_step <= 16 and holes:
-            ctx["crops"] = self._load_hole_crops(holes_dir, holes, prefer_fused=False)
-            ctx["fused"] = self._load_hole_crops(holes_dir, holes, prefer_fused=True)
+        # Per-hole crops, cut again from the full-precision replayed frames
+        # (identical to what Steps 9-10 produced in the original run).
+        if 10 <= start_step <= LAST_IMAGE_STEP and holes and "frames" in ctx:
+            ctx["crops"] = extract_hole_crops(holes, ctx["frames"], compute_crop_size_px(ctx["calibration"]))
+            if start_step >= 11:
+                ctx["fused"] = {hid: fuse_hole_crops(c) for hid, c in ctx["crops"].items()}
 
         # Outlines / profiles for steps 12..15.
         if 12 <= start_step <= 15 and holes:
@@ -400,39 +415,16 @@ class PipelineRunner:
             )
         return frames
 
-    def _load_hole_crops(
-        self, holes_dir: Path, holes: List[HoleRecord], prefer_fused: bool
-    ) -> Dict[str, Dict[str, np.ndarray]]:
-        result: Dict[str, Dict[str, np.ndarray]] = {}
-        prefix = "fused_" if prefer_fused else ""
-        for h in holes:
-            crop_dir = holes_dir / h.hole_id / "crops"
-            if not crop_dir.exists():
-                continue
-            hole_crops: Dict[str, np.ndarray] = {}
-            for png in crop_dir.glob(f"{prefix}*.png"):
-                name = png.stem
-                if prefer_fused:
-                    if not name.startswith("fused_"):
-                        continue
-                    tag = name[len("fused_"):]
-                else:
-                    if name.startswith("fused_"):
-                        continue
-                    tag = name
-                img = load_linear_png(png)
-                if img is not None:
-                    hole_crops[tag] = img
-            if hole_crops:
-                result[h.hole_id] = hole_crops
-        return result
-
     def _load_patches(self, holes_dir: Path, holes: List[HoleRecord]) -> Dict[str, List[np.ndarray]]:
+        """Step 14 patches: the exact float32 array, else (older sessions) the PNG copies."""
         out: Dict[str, List[np.ndarray]] = {}
         for h in holes:
             patch_dir = holes_dir / h.hole_id / "boundary_patches"
             patches: List[np.ndarray] = []
-            if patch_dir.is_dir():
+            exact = patch_dir / PATCH_ARRAY_FILE
+            if exact.is_file():
+                patches = list(np.load(exact))
+            elif patch_dir.is_dir():
                 for png in sorted(patch_dir.glob("patch_*.png")):
                     img = load_linear_png(png)
                     if img is not None:

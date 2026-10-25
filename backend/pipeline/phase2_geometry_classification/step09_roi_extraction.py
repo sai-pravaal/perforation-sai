@@ -56,6 +56,44 @@ def extract_subpixel_crop(
     return crop.astype(np.float32)
 
 
+FRAME_KEYS = ["diffuse", "torch_1", "torch_2", "torch_3", "torch_4", "backlit"]
+
+
+def compute_crop_size_px(
+    calibration_record: CalibrationRecord,
+    expected_hole_diameter_um: float = ROI_EXPECTED_HOLE_DIAMETER_UM,
+    crop_scale_factor: float = ROI_CROP_SCALE_FACTOR
+) -> int:
+    """Crop side in pixels: crop_scale_factor x expected hole diameter, converted with the session scale."""
+    crop_size_um = expected_hole_diameter_um * crop_scale_factor
+    crop_size_px = int(round(crop_size_um / max(1e-3, calibration_record.microns_per_pixel)))
+    # Ensure odd dimension for symmetric center. Only a lower bound is applied;
+    # an upper clamp would break the "same physical size in every session" rule
+    # at fine pixel scales (a 1.2 mm hole no longer fits at <= ~5 um/px).
+    crop_size_px = max(ROI_MIN_CROP_PX, crop_size_px)
+    if crop_size_px % 2 == 0:
+        crop_size_px += 1
+    return crop_size_px
+
+
+def extract_hole_crops(
+    holes: List[HoleRecord],
+    frames: Dict[str, RawFrameRecord],
+    crop_size_px: int
+) -> Dict[str, Dict[str, np.ndarray]]:
+    """Full-precision float32 crops per hole and frame tag (no file I/O).
+
+    Also used by the runner to rebuild crops on resume straight from the
+    RAW-derived frames, so resumed runs never measure on rounded PNG copies.
+    """
+    available_frames = {k: frames[k].brightness_array for k in FRAME_KEYS if k in frames}
+    return {
+        h.hole_id: {tag: extract_subpixel_crop(arr, h.centroid_px, crop_size_px)
+                    for tag, arr in available_frames.items()}
+        for h in holes
+    }
+
+
 def run_step09(
     session_id: str,
     holes: List[HoleRecord],
@@ -74,34 +112,17 @@ def run_step09(
     holes_dir = session_dir / "holes"
     holes_dir.mkdir(parents=True, exist_ok=True)
 
-    # Compute crop size in pixels (e.g. 3x hole diameter in microns / microns_per_pixel)
-    crop_size_um = expected_hole_diameter_um * crop_scale_factor
-    crop_size_px = int(round(crop_size_um / max(1e-3, calibration_record.microns_per_pixel)))
-    # Ensure odd dimension for symmetric center. Only a lower bound is applied;
-    # an upper clamp would break the "same physical size in every session" rule
-    # at fine pixel scales (a 1.2 mm hole no longer fits at <= ~5 um/px).
-    crop_size_px = max(ROI_MIN_CROP_PX, crop_size_px)
-    if crop_size_px % 2 == 0:
-        crop_size_px += 1
-
-    frame_keys = [
-        "diffuse", "torch_1", "torch_2", "torch_3", "torch_4", "backlit"
-    ]
-    available_frames = {k: frames[k].brightness_array for k in frame_keys if k in frames}
-
-    all_crops: Dict[str, Dict[str, np.ndarray]] = {}
+    crop_size_px = compute_crop_size_px(calibration_record, expected_hole_diameter_um, crop_scale_factor)
+    all_crops = extract_hole_crops(holes, frames, crop_size_px)
     image_entries: List[Dict[str, Any]] = []
 
     for h in holes:
         h_dir = holes_dir / h.hole_id / "crops"
         h_dir.mkdir(parents=True, exist_ok=True)
-        hole_crops: Dict[str, np.ndarray] = {}
 
-        for tag, arr in available_frames.items():
-            crop = extract_subpixel_crop(arr, h.centroid_px, crop_size_px)
-            hole_crops[tag] = crop
-
-            # Save 16-bit linear crop to disk (reloaded verbatim on resume)
+        for tag, crop in all_crops[h.hole_id].items():
+            # 16-bit PNG for the gallery only; measurements always use the
+            # in-memory float32 crops (rebuilt from the RAW files on resume).
             save_linear_png(h_dir / f"{tag}.png", crop)
             image_entries.append({
                 "path": f"holes/{h.hole_id}/crops/{tag}.png",
@@ -109,8 +130,6 @@ def run_step09(
                 "hole_id": h.hole_id,
                 "edge": h.edge,
             })
-
-        all_crops[h.hole_id] = hole_crops
 
     # Feature 6/10: every crop is a displayable, filterable gallery item.
     if image_entries:

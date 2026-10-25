@@ -164,3 +164,38 @@ def test_run_refuses_without_shadow_bleed_ack(tmp_path):
     sm.create_session("s")
     result = PipelineRunner(sm).run("s")
     assert result["status"] == "failed" and "shadow-bleed" in result["error"]
+
+
+def _dot_grid_frame(pitch_px: float = 60.0, dot_r: float = 8.0, shape=(2400, 3600)) -> np.ndarray:
+    """Grey frame with a 7x7 grid of dark dots near the centre (target spans ~10% of the frame)."""
+    img = np.full(shape, 0.06, np.float32)
+    cy, cx = shape[0] / 2.0, shape[1] / 2.0
+    for r in range(7):
+        for c in range(7):
+            cv2.circle(img, (int(round(cx + (c - 3) * pitch_px)), int(round(cy + (r - 3) * pitch_px))),
+                       int(dot_r), 0.01, -1, lineType=cv2.LINE_AA)
+    return img
+
+
+def test_step02_small_grid_gives_scale_without_fitted_distortion():
+    """CAL-01/02: a small central dot grid is found quickly and does not yield fitted distortion."""
+    import time
+    from backend.pipeline.phase1_calibration_registration.step02_lens_and_unit_calibration import (
+        detect_calibration_scale)
+    start = time.time()
+    dist, upp = detect_calibration_scale(_dot_grid_frame(), known_pattern_spacing_um=1000.0)
+    assert time.time() - start < 20.0
+    assert dist == [0.0, 0.0, 0.0]
+    assert upp == pytest.approx(1000.0 / 60.0, rel=0.01)
+
+
+def test_manifest_image_entry_replaced_not_duplicated(tmp_path):
+    """Replaying a step rewrites the same file; its manifest entry must not be duplicated."""
+    m = ManifestManager(tmp_path / "s")
+    first = m.add_image_entry("stages/stamp_boundary.png", "stamp_boundary")
+    m.add_image_entries([{"path": "holes/a/crops/backlit.png", "stage": "roi_crop"}])
+    second = m.add_image_entry("stages/stamp_boundary.png", "stamp_boundary")
+    m.add_image_entries([{"path": "holes/a/crops/backlit.png", "stage": "roi_crop"}])
+    paths = [img["path"] for img in m.load()["images"]]
+    assert sorted(paths) == ["holes/a/crops/backlit.png", "stages/stamp_boundary.png"]
+    assert second > first

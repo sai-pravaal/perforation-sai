@@ -38,6 +38,10 @@ COMPOSITE_FIELD_ORDER: List[str] = [
 CALIBRATION_PATTERN_SPACING_UM: float = 1000.0       # Known centre-to-centre spacing of the printed target (our target: 7x7 dots, 1.000 mm pitch, 0.25 mm dots)
 CALIBRATION_PATTERN_SIZE: Tuple[int, int] = (7, 7)   # Inner points per row, per column of the target grid
 CALIBRATION_DETECTION_GAMMA: float = 2.2             # Display gamma applied to the detection copy only (frames stay linear)
+CALIBRATION_STRETCH_PERCENTILES: Tuple[float, float] = (0.1, 99.9)  # Detection copy is stretched between these brightness percentiles
+CALIBRATION_SEARCH_SCALES: List[float] = [0.5, 0.25, 1.0]  # Downscale factors tried for the dot-grid search (points refined at full size)
+CALIBRATION_CHESSBOARD_MAX_DIM: int = 1500           # Chessboard fallback searches a copy no larger than this (full-size search takes minutes)
+CALIBRATION_MIN_FIELD_COVERAGE: float = 0.5          # Grid span / frame diagonal needed before lens distortion is fitted (else k = 0)
 
 # -------------------------------------------------------------------------
 # Step 3: Illumination Geometry (Path B ball-bearing detection)
@@ -221,6 +225,10 @@ def get_pipeline_constants_dict() -> Dict[str, Any]:
         "CALIBRATION_PATTERN_SPACING_UM": CALIBRATION_PATTERN_SPACING_UM,
         "CALIBRATION_PATTERN_SIZE": list(CALIBRATION_PATTERN_SIZE),
         "CALIBRATION_DETECTION_GAMMA": CALIBRATION_DETECTION_GAMMA,
+        "CALIBRATION_STRETCH_PERCENTILES": list(CALIBRATION_STRETCH_PERCENTILES),
+        "CALIBRATION_SEARCH_SCALES": CALIBRATION_SEARCH_SCALES,
+        "CALIBRATION_CHESSBOARD_MAX_DIM": CALIBRATION_CHESSBOARD_MAX_DIM,
+        "CALIBRATION_MIN_FIELD_COVERAGE": CALIBRATION_MIN_FIELD_COVERAGE,
         "BALL_HOUGH_DP": BALL_HOUGH_DP,
         "BALL_HOUGH_MIN_DIST_PX": BALL_HOUGH_MIN_DIST_PX,
         "BALL_HOUGH_PARAM1": BALL_HOUGH_PARAM1,

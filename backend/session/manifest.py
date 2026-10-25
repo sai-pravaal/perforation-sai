@@ -213,6 +213,9 @@ class ManifestManager:
         # than from the list length (which can shrink and repeat a token).
         last = images[-1].get("token", 0) if images else 0
         token = max(int(last), int(data.get("mod_token", 0))) + 1
+        # One entry per file: a step re-run (e.g. Steps 1-6 replayed on resume)
+        # rewrites the same file, so its old entry is replaced, not duplicated.
+        images = [img for img in images if img.get("path") != path]
 
         entry = {
             "token": token,
@@ -237,6 +240,8 @@ class ManifestManager:
         images: List[Dict[str, Any]] = data.get("images", [])
         last = images[-1].get("token", 0) if images else 0
         token = max(int(last), int(data.get("mod_token", 0)))
+        new_paths = {e["path"] for e in entries}
+        images = [img for img in images if img.get("path") not in new_paths]
         tokens: List[int] = []
         now = datetime.now(timezone.utc).isoformat()
         for e in entries:

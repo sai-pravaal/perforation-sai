@@ -127,6 +127,7 @@ class UploadTab(QWidget):
         import_button.setToolTip("Copy every file named by the capture convention "
                                  "(diffuse, torch_1..torch_4, backlit, calibration, ball_bearing_*) from a folder.")
         import_button.clicked.connect(self.import_folder)
+        self.import_button = import_button
         drop_row = QHBoxLayout()
         drop_row.addStretch(1)
         drop_row.addWidget(drop)
@@ -141,6 +142,7 @@ class UploadTab(QWidget):
         self.files.setHorizontalHeaderLabels(("File", "Tag"))
         self.files.horizontalHeader().setStretchLastSection(True)
         self._paths: List[str] = []
+        self._ready = False
 
         self.checklist = ChecklistWidget()
         self.message = QLabel("Add the capture files and assign a tag to each.")
@@ -199,10 +201,17 @@ class UploadTab(QWidget):
         folder = QFileDialog.getExistingDirectory(self, "Choose a folder of capture files")
         if not folder:
             return
-        payload, error = Client.unwrap(self.client.call("import_folder", session_id, folder), "Import failed.")
+        # Copying a set of RAW files takes seconds, so it runs off the GUI thread.
+        self._set_busy(True, f"Importing from {folder}…")
+        self.client.call_async("import_folder", session_id, folder,
+                               on_done=lambda r, f=folder: self._on_imported(f, r))
+
+    def _on_imported(self, folder: str, response: Dict) -> None:
+        payload, error = Client.unwrap(response, "Import failed.")
         if error:
-            self.message.setText(error)
+            self._set_busy(False, error)
             return
+        self._set_busy(False, "")
         self._show_raw(payload)
         self.message.setText(f"Imported {len(payload.get('files', []))} file(s) from {folder}.")
     def choose_files(self) -> None:
@@ -259,6 +268,7 @@ class UploadTab(QWidget):
                                   else "Required captures are missing or duplicated.") + note)
         session_id = self.session_id.text().strip()
         ready = ready and bool(session_id)
+        self._ready = ready
         self.process_button.setEnabled(ready)
         if session_id:
             self.session_changed.emit(session_id)
@@ -266,26 +276,44 @@ class UploadTab(QWidget):
 
     # ------------------------------------------------------- quality gate
     def run_quality_gate(self) -> None:
-        """Feature 29: run the pre-check on Process; only a pass (or acknowledged warn) continues."""
+        """Feature 29: run the pre-check on Process; only a pass (or acknowledged warn) continues.
+
+        Storing the files and the check itself decode full-size RAW frames, so
+        both run off the GUI thread (the window froze for minutes before).
+        """
         session_id = self.session_id.text().strip()
+        self._set_busy(True, "Storing capture files…")
         # Write the tagged files into the session's raw/ folder first: the
         # quality gate and the pipeline both read from there.
-        stored, error = Client.unwrap(self.client.call("upload_files", session_id, self.tagged_files()),
-                                      "Unable to store the capture files.")
+        self.client.call_async("upload_files", session_id, self.tagged_files(),
+                               on_done=lambda r, sid=session_id: self._on_stored(sid, r))
+
+    def _on_stored(self, session_id: str, response: Dict) -> None:
+        stored, error = Client.unwrap(response, "Unable to store the capture files.")
         if error:
-            self.message.setText(error)
+            self._set_busy(False, error)
             return
         if not stored.get("ready"):
             self.checklist.update_result(stored)
-            self.message.setText("The stored capture set is incomplete; check the checklist.")
+            self._set_busy(False, "The stored capture set is incomplete; check the checklist.")
             return
-        self.message.setText("Running quality check…")
-        response = self.client.call("run_quality_gate", session_id)
-        if response.get("success") is False:
-            self.message.setText(response.get("error", "Quality check could not run."))
+        self.message.setText("Running quality check (decoding the RAW frames)…")
+        self.client.call_async("run_quality_gate", session_id, on_done=self._on_quality_checked)
+
+    def _on_quality_checked(self, response: Dict) -> None:
+        result, error = Client.unwrap(response, "Quality check could not run.")
+        if error:
+            self._set_busy(False, error)
             return
-        self.quality_card.show_result(response.get("result", response))
-        self.message.setText("")
+        self._set_busy(False, "")
+        self.quality_card.show_result(result)
+
+    def _set_busy(self, busy: bool, text: str) -> None:
+        """Lock the controls that would start a second upload or check while one is running."""
+        self.process_button.setEnabled(not busy and self._ready)
+        self.import_button.setEnabled(not busy)
+        self.process_button.setText("Working…" if busy else "Process")
+        self.message.setText(text)
 
     def _continue(self) -> None:
         self.process_requested.emit(self.session_id.text().strip())

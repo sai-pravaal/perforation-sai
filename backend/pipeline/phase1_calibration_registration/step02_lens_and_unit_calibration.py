@@ -14,10 +14,16 @@ from typing import Any, Dict, List, Optional, Tuple
 import cv2
 import numpy as np
 
+from skimage.filters import threshold_otsu
+
 from backend.config.pipeline_constants import (
+    CALIBRATION_CHESSBOARD_MAX_DIM,
     CALIBRATION_DETECTION_GAMMA,
+    CALIBRATION_MIN_FIELD_COVERAGE,
     CALIBRATION_PATTERN_SIZE,
     CALIBRATION_PATTERN_SPACING_UM,
+    CALIBRATION_SEARCH_SCALES,
+    CALIBRATION_STRETCH_PERCENTILES,
 )
 from backend.pipeline.phase0_ingestion.step01_raw_capture_ingestion import RawFrameRecord
 from backend.session.manifest import ManifestManager
@@ -69,6 +75,89 @@ def _to_detection_u8(linear_image: np.ndarray) -> np.ndarray:
     return (np.power(lin, 1.0 / CALIBRATION_DETECTION_GAMMA) * 255.0).astype(np.uint8)
 
 
+def _to_stretched_u8(linear_image: np.ndarray) -> np.ndarray:
+    """Display-gamma copy stretched to the full 0-255 range (detection only).
+
+    A correctly exposed calibration photo of grey paper uses only a narrow band
+    of the 8-bit range (here roughly 60-120), which leaves the dots too faint
+    for OpenCV's blob thresholds.
+    """
+    g = np.power(np.clip(linear_image, 0.0, 1.0), 1.0 / CALIBRATION_DETECTION_GAMMA)
+    lo, hi = np.percentile(g, CALIBRATION_STRETCH_PERCENTILES)
+    if hi <= lo:
+        return (g * 255.0).astype(np.uint8)
+    return (np.clip((g - lo) / (hi - lo), 0.0, 1.0) * 255.0).astype(np.uint8)
+
+
+def _refine_dot_centres(image: np.ndarray, coarse: np.ndarray, pattern_size: Tuple[int, int]) -> np.ndarray:
+    """Sub-pixel dot centres at full resolution from centres found on a downscaled copy.
+
+    Each dot is re-measured inside a window of half the grid pitch around its
+    coarse centre: the window is split at its Otsu level and the centre is the
+    darkness-weighted centroid of the dark (dot) pixels. Points whose window
+    has no clear dot keep the coarse position.
+    """
+    pts = coarse.reshape(-1, 2).astype(np.float64)
+    grid = pts.reshape(pattern_size[1], pattern_size[0], 2)
+    pitch = float(np.median(np.concatenate([
+        np.linalg.norm(np.diff(grid, axis=1), axis=2).ravel(),
+        np.linalg.norm(np.diff(grid, axis=0), axis=2).ravel(),
+    ])))
+    half = max(3, int(round(pitch / 2.0)))
+    h, w = image.shape
+    img = image.astype(np.float64)
+    refined = pts.copy()
+    for i, (x, y) in enumerate(pts):
+        x0, x1 = max(0, int(round(x)) - half), min(w, int(round(x)) + half + 1)
+        y0, y1 = max(0, int(round(y)) - half), min(h, int(round(y)) + half + 1)
+        win = img[y0:y1, x0:x1]
+        if win.size == 0 or float(win.max()) <= float(win.min()):
+            continue
+        level = float(threshold_otsu(win))
+        weight = np.clip(level - win, 0.0, None)  # dark dot on light paper
+        total = float(weight.sum())
+        if total <= 0.0:
+            continue
+        ys, xs = np.mgrid[y0:y1, x0:x1]
+        refined[i] = [float((weight * xs).sum() / total), float((weight * ys).sum() / total)]
+    return refined.reshape(-1, 1, 2).astype(np.float32)
+
+
+def find_calibration_points(
+    calib_image: np.ndarray, pattern_size: Tuple[int, int]
+) -> Optional[np.ndarray]:
+    """Locate the dot grid (or, failing that, chessboard) points at full-resolution precision.
+
+    The search runs on contrast-stretched copies downscaled by
+    CALIBRATION_SEARCH_SCALES: OpenCV's grid ordering fails on full-size macro
+    frames, and an exhaustive chessboard search on a 24 MP frame takes minutes.
+    Points found on a copy are mapped back and refined on the full-resolution
+    linear frame, so the 8-bit copies never limit measurement precision.
+    """
+    stretched = _to_stretched_u8(calib_image)
+    h, w = stretched.shape
+    for scale in CALIBRATION_SEARCH_SCALES:
+        small = stretched if scale >= 1.0 else cv2.resize(
+            stretched, (max(1, int(round(w * scale))), max(1, int(round(h * scale)))),
+            interpolation=cv2.INTER_AREA)
+        found, centres = cv2.findCirclesGrid(small, pattern_size, flags=cv2.CALIB_CB_SYMMETRIC_GRID)
+        if found and centres is not None:
+            return _refine_dot_centres(calib_image, centres / scale, pattern_size)
+
+    # Chessboard fallback, searched only on a copy no larger than CALIBRATION_CHESSBOARD_MAX_DIM.
+    scale = min(1.0, CALIBRATION_CHESSBOARD_MAX_DIM / float(max(h, w)))
+    small = stretched if scale >= 1.0 else cv2.resize(
+        stretched, (max(1, int(round(w * scale))), max(1, int(round(h * scale)))), interpolation=cv2.INTER_AREA)
+    found, corners = cv2.findChessboardCorners(
+        small, pattern_size, flags=cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE)
+    if not found or corners is None:
+        return None
+    corners = (corners / scale).astype(np.float32)
+    win = max(3, int(round(2.0 / scale)))
+    criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_MAX_ITER, 50, 1e-3)
+    return cv2.cornerSubPix(np.asarray(calib_image, dtype=np.float32), corners, (win, win), (-1, -1), criteria)
+
+
 def _undistorted_grid_spacing_px(
     corners: np.ndarray,
     pattern_size: Tuple[int, int],
@@ -105,27 +194,43 @@ def detect_calibration_scale(
     if pattern_size is None:
         pattern_size = tuple(CALIBRATION_PATTERN_SIZE)
 
-    img_uint8 = _to_detection_u8(calib_image)
-    h, w = img_uint8.shape
+    h, w = calib_image.shape
+    corners = find_calibration_points(calib_image, pattern_size)
 
-    # Try circles grid
-    found, corners = cv2.findCirclesGrid(
-        img_uint8, pattern_size, flags=cv2.CALIB_CB_SYMMETRIC_GRID
-    )
-    if not found:
-        # Try chessboard
-        found, corners = cv2.findChessboardCorners(img_uint8, pattern_size)
+    if corners is not None:
+        # A single photo of a grid that covers only a small central patch of
+        # the frame carries no information about radial distortion: the fit
+        # is unconstrained and returns huge, meaningless coefficients (e.g.
+        # k2 ~ -6.5e8 on the 7x7 / 1 mm target at macro scale), which would
+        # then warp every frame. Distortion is only fitted when the grid spans
+        # CALIBRATION_MIN_FIELD_COVERAGE of the frame diagonal; otherwise the
+        # lens is treated as distortion-free over the target and the scale is
+        # the measured dot pitch.
+        pts = corners.reshape(-1, 2)
+        span = np.hypot(*(pts.max(axis=0) - pts.min(axis=0)))
+        coverage = float(span / np.hypot(w, h))
+        if coverage < CALIBRATION_MIN_FIELD_COVERAGE:
+            logger.info(
+                "Step 2: calibration grid spans %.0f%% of the frame diagonal (< %.0f%%); "
+                "lens distortion not fitted, scale taken from the measured dot pitch",
+                100 * coverage, 100 * CALIBRATION_MIN_FIELD_COVERAGE)
+            _SOLVED_CAMERA_MATRIX["last"] = None
+            identity = np.eye(3, dtype=np.float64)
+            median_px = _undistorted_grid_spacing_px(corners, pattern_size, identity, np.zeros(5))
+            if median_px <= 0:
+                raise CalibrationTargetNotFoundError("Calibration grid spacing measured as zero pixels.")
+            return [0.0, 0.0, 0.0], known_pattern_spacing_um / median_px
 
-    if found and corners is not None:
         # Construct object points in microns
         objp = np.zeros((pattern_size[0] * pattern_size[1], 3), np.float32)
         objp[:, :2] = np.mgrid[0:pattern_size[0], 0:pattern_size[1]].T.reshape(-1, 2) * known_pattern_spacing_um
 
         # The CalibrationRecord contract stores the radial model [k1, k2, k3]
-        # only, so tangential terms are held at zero during the fit.
+        # only, so tangential terms are held at zero during the fit; k3 is
+        # also held at zero because one view cannot separate it from k2.
         ret, mtx, dist, rvecs, tvecs = cv2.calibrateCamera(
             [objp], [corners], (w, h), None, None,
-            flags=cv2.CALIB_ZERO_TANGENT_DIST
+            flags=cv2.CALIB_ZERO_TANGENT_DIST | cv2.CALIB_FIX_K3
         )
         # OpenCV orders distortion as [k1, k2, p1, p2, k3].
         dist_flat = dist.ravel().tolist()

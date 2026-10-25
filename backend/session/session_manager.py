@@ -284,6 +284,10 @@ class SessionManager:
         staging.mkdir()
         try:
             planned: List[str] = []
+            # Files already in raw/ under their final name are left in place:
+            # RAW captures are ~50 MB each, so re-copying the whole set on every
+            # Process click took many seconds for no change.
+            kept: set = set()
             for tag, paths in tagged.items():
                 if tag not in CAPTURE_SCHEMA:
                     raise ValueError(f"Unknown capture tag: {tag}")
@@ -293,11 +297,15 @@ class SessionManager:
                         raise FileNotFoundError(f"Capture file not found: {src}")
                     stem = tag if len(sources) == 1 else f"{tag}_{i:02d}"
                     name = stem + src.suffix.lower()
+                    if src.resolve() == (raw_dir / name).resolve():
+                        kept.add(name)
+                        continue
                     shutil.copy2(src, staging / name)
                     planned.append(name)
             uploaded_tags = set(tagged)
             for existing in raw_dir.iterdir():
-                if existing.is_file() and match_filename_to_tag(existing.name) in uploaded_tags:
+                if (existing.is_file() and existing.name not in kept
+                        and match_filename_to_tag(existing.name) in uploaded_tags):
                     existing.unlink()
             for name in planned:
                 shutil.move(str(staging / name), str(raw_dir / name))

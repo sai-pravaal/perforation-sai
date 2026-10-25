@@ -23,6 +23,7 @@ from backend.session.session_manager import SessionManager
 logger = logging.getLogger(__name__)
 
 TORCH_TAGS = ["torch_1", "torch_2", "torch_3", "torch_4"]
+PATCH_ARRAY_FILE = "patches.npy"  # all of a hole's patches, float32 [n, size, size]
 
 
 def resample_outline(outline: List[List[float]], spacing_px: float) -> List[Tuple[float, float, float]]:
@@ -156,9 +157,11 @@ def run_step14(
             patch = extract_aligned_patch(torch_imgs[best_tag], (x, y), tangent_deg, patch_size)
             patches.append(patch)
 
-            # 16-bit linear so Step 15 can be resumed from disk without precision loss.
-            save_linear_png(patch_dir / f"patch_{i:03d}.png", patch)
+            save_linear_png(patch_dir / f"patch_{i:03d}.png", patch)  # for viewing only
 
+        # Exact float32 copy so a resume at Step 15 measures the same numbers
+        # a fresh run does (the PNGs are rounded and clipped to [0, 1]).
+        np.save(patch_dir / PATCH_ARRAY_FILE, np.asarray(patches, dtype=np.float32))
         all_patches[h.hole_id] = patches
 
     manifest.add_stage_entry(
