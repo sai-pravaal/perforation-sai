@@ -21,6 +21,7 @@ from backend.config.capture_schema import validate_captured_tags
 from backend.config.pipeline_constants import (
     BRIGHTNESS_MISMATCH_TOLERANCE,
     COMPOSITE_FIELD_ORDER,
+    EDGE_VARIATION_MIN_EXCEEDED,
     MAD_SCALE_CONSTANT,
     MIN_HOLES_PER_EDGE,
     FIELD_DRIVER_Z,
@@ -677,6 +678,8 @@ def get_citation(descriptor_type: str) -> Dict[str, Any]:
 
 
 BAND_LABELS = {"genuine": "low", "suspicious": "medium", "highly_suspicious": "high"}
+EDGE_MEASURE_LABELS = {"spacing": "spacing between teeth", "notch_depth": "notch depth",
+                       "hole_size": "hole size", **FIELD_LABELS}
 
 
 def suspicion_band(tail_probability: Optional[float]) -> Optional[str]:
@@ -735,14 +738,21 @@ def get_results_summary(session_id: str) -> Dict[str, Any]:
         for r in regions:
             members = [by_id[h] for h in r.get("hole_ids", []) if h in by_id]
             band = min((m["band"] for m in members), key=lambda b: order.get(b, 3), default=None)
+            evidence = (f"{str(r.get('edge', '')).title()} edge, holes "
+                        f"{r.get('start_position')}-{r.get('end_position')}")
+            if r.get("basis") == "edge_consistency":
+                # Whole-edge inconsistency, graded by how many measures exceed their threshold.
+                exceeded = r.get("exceeded") or []
+                band = "high" if len(exceeded) > EDGE_VARIATION_MIN_EXCEEDED else "medium"
+                evidence += (": teeth not alike in " + ", ".join(EDGE_MEASURE_LABELS.get(m, m) for m in exceeded))
             region_rows.append({
                 "region_id": r.get("region_id"),
                 "edge": r.get("edge"),
                 "start_position": r.get("start_position"),
                 "end_position": r.get("end_position"),
                 "band": band,
-                "evidence": f"{str(r.get('edge', '')).title()} edge, holes "
-                            f"{r.get('start_position')}-{r.get('end_position')}",
+                "basis": r.get("basis", "tooth_outliers"),
+                "evidence": evidence,
                 "low_confidence": any(m["low_confidence"] for m in members),
             })
         return {"session_id": session_id, "holes": rows, "regions": region_rows}
@@ -787,19 +797,32 @@ def get_region_summary(session_id: str, region_id: str) -> Dict[str, Any]:
             if r["mean_abs_z"] is not None:
                 category_strength[r["category"]] = max(category_strength.get(r["category"], 0.0), r["mean_abs_z"])
         lead = max(category_strength, key=category_strength.get) if category_strength else None
+        statement = (f"This region is flagged mainly on {lead} "
+                     f"({', '.join(FIELD_LABELS.get(d, d) for d in dominant)})." if lead else
+                     "No descriptor stands out across this region.")
+        consistency = None
+        if region.get("basis") == "edge_consistency":
+            report = _read_json(_session_manager().get_session_dir(session_id) / "stages" / "edge_consistency.json") or []
+            consistency = next((e for e in report if e.get("edge") == region.get("edge")), None)
+            if consistency:
+                pct, limits = consistency["variation_pct"], consistency["thresholds_pct"]
+                parts = ", ".join(f"{EDGE_MEASURE_LABELS.get(m, m)} varies {pct[m]:.1f}% (limit {limits[m]:.1f}%)"
+                                  for m in consistency["exceeded"])
+                statement = (f"The teeth on this edge are not alike: {parts}. A perforating machine leaves every "
+                             f"hole of a row alike (one line, one spacing, one size); holes re-punched by hand "
+                             f"are not. Measured on this stamp's own teeth only.")
         return {
             "success": True,
             "error": None,
             "region": region,
+            "edge_consistency": consistency,
             "title": f"{str(region.get('edge', '')).title()} edge, holes "
                      f"{region.get('start_position')}-{region.get('end_position')}",
             "members": members,
             "descriptor_table": table,
             "dominant_descriptors": dominant,
             "dominant_category": lead,
-            "statement": (f"This region is flagged mainly on {lead} "
-                          f"({', '.join(FIELD_LABELS.get(d, d) for d in dominant)})." if lead else
-                          "No descriptor stands out across this region."),
+            "statement": statement,
             "low_confidence": any(m["low_confidence"] for m in members),
         }
     except Exception as exc:

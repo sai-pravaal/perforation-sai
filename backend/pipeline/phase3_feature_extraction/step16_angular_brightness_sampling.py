@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 import cv2
 import numpy as np
 
-from backend.config.pipeline_constants import PAPER_SAMPLE_OFFSET_UM
+from backend.config.pipeline_constants import PAPER_SAMPLE_BAND_STEPS, PAPER_SAMPLE_BAND_UM
 from backend.pipeline.phase1_calibration_registration.step02_lens_and_unit_calibration import CalibrationRecord
 from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
 from backend.session.session_manager import SessionManager
@@ -48,7 +48,8 @@ def run_step16(
     manifest = session_manager.get_manifest_manager(session_id)
     holes_dir = session_dir / "holes"
 
-    offset_px = PAPER_SAMPLE_OFFSET_UM / max(1e-6, calibration_record.microns_per_pixel)
+    upp = max(1e-6, calibration_record.microns_per_pixel)
+    offsets_px = np.linspace(PAPER_SAMPLE_BAND_UM[0], PAPER_SAMPLE_BAND_UM[1], PAPER_SAMPLE_BAND_STEPS) / upp
 
     tables: Dict[str, Dict[str, Any]] = {}
 
@@ -68,10 +69,9 @@ def run_step16(
             if not v or d is None or not present_torches:
                 continue
             rad = math.radians(a)
-            r_out = d + offset_px
-            px = center[0] + r_out * math.cos(rad)
-            py = center[1] + r_out * math.sin(rad)
-            brightness = [sample_bilinear(torch_imgs[t], px, py) for t in present_torches]
+            pts = [(center[0] + (d + o) * math.cos(rad), center[1] + (d + o) * math.sin(rad)) for o in offsets_px]
+            brightness = [float(np.mean([sample_bilinear(torch_imgs[t], px, py) for px, py in pts]))
+                          for t in present_torches]
             rows.append({"angle_deg": float(a), "brightness": brightness})
 
         table = {"torch_order": present_torches, "rows": rows}

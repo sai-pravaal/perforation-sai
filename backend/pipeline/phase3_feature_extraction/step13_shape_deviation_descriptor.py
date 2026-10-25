@@ -10,7 +10,7 @@ import json
 import logging
 import math
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -95,6 +95,56 @@ def fit_fourier_magnitudes(
     return magnitudes
 
 
+def _arc_parameter(angles_deg: np.ndarray) -> np.ndarray:
+    """Map the angles of one contiguous arc to t in [-1, 1] (wrap-safe, centred on the arc)."""
+    a = np.radians(np.asarray(angles_deg, dtype=np.float64))
+    mid = math.atan2(float(np.mean(np.sin(a))), float(np.mean(np.cos(a))))
+    delta = np.angle(np.exp(1j * (a - mid)))
+    half = float(np.max(np.abs(delta)))
+    return delta / half if half > 1e-9 else np.zeros_like(delta)
+
+
+def fit_shape_model(
+    angles_deg: List[float],
+    distances_px: List[Optional[float]],
+    valid_mask: List[bool],
+    order: int,
+    partial_arc: bool
+) -> Optional[Tuple[List[float], np.ndarray, np.ndarray]]:
+    """Fit the smooth radius model and return (terms 1..order, raw radii, fitted radii).
+
+    Terms are harmonic magnitudes for full outlines and signed Legendre
+    coefficients for partial arcs.
+
+    Full outlines: Fourier harmonics (fit_fourier_series).
+    Partial arcs (edge teeth): Legendre polynomials in the arc parameter t.
+    A Fourier fit over the ~150 degrees a tooth shows is ill-conditioned:
+    the harmonics are far from orthogonal there and radius noise is
+    amplified up to ~500x in the harmonic magnitudes (0.17x on a full
+    circle), so tooth "harmonics" were mostly noise. Legendre polynomials are
+    orthogonal on an interval, so their terms 1..4 (tilt, flattening,
+    3rd/4th-order polygonal deviation) are the stable arc counterpart.
+    """
+    pairs = [(a, d) for a, d, v in zip(angles_deg, distances_px, valid_mask) if v and d is not None]
+    if len(pairs) < 2 * order + 1:
+        return None
+    angles = np.array([p[0] for p in pairs], dtype=np.float64)
+    radii = np.array([p[1] for p in pairs], dtype=np.float64)
+    if partial_arc:
+        t = _arc_parameter(angles)
+        coeffs = np.polynomial.legendre.legfit(t, radii, order)
+        # Signed, not magnitudes: every tooth on an edge has its arc oriented
+        # the same way, so a term's sign is meaningful (e.g. which side the
+        # arc tilts to), and |c| near zero is a folded, one-sided distribution
+        # whose tail the median/MAD z of Step 20 overstates.
+        return [float(c) for c in coeffs[1:order + 1]], radii, np.polynomial.legendre.legval(t, coeffs)
+    coeffs = fit_fourier_series(angles_deg, distances_px, valid_mask, order)
+    if coeffs is None:
+        return None
+    mags = [float(math.hypot(coeffs[1 + 2 * (k - 1)], coeffs[2 + 2 * (k - 1)])) for k in range(1, order + 1)]
+    return mags, radii, evaluate_fourier_series(coeffs, angles.tolist(), order)
+
+
 def compute_roundness_ratio(outline: List[List[float]]) -> Optional[float]:
     """Compute 4*pi*area / perimeter^2 from a closed outline (None if not computable)."""
     if not outline or len(outline) < 3:
@@ -141,12 +191,12 @@ def run_step13(
             mean_radius_um = None
             radius_std_um = None
 
-        # Harmonic magnitudes are radius amplitudes, so they get the same
+        # Term magnitudes are radius amplitudes, so they get the same
         # pixel -> micrometre conversion as the radius (comparable across sessions).
-        fourier_coeffs = [
-            m * upp if m is not None else None
-            for m in fit_fourier_magnitudes(angles, distances, valid, FOURIER_FIT_ORDER)
-        ]
+        # Teeth (partial arcs) use Legendre terms in the same four slots; they
+        # are only ever compared with other teeth (Step 19).
+        model = fit_shape_model(angles, distances, valid, FOURIER_FIT_ORDER, h.type == "edge_tooth")
+        fourier_coeffs = [m * upp for m in model[0]] if model else [None] * FOURIER_FIT_ORDER
 
         if h.type == "interior_hole":
             roundness = compute_roundness_ratio(outlines.get(h.hole_id, []))

@@ -79,6 +79,7 @@ HOLE_AREA_MIN_FRACTION: float = 0.3             # Min area as a fraction of the 
 HOLE_AREA_MAX_FACTOR: float = 2.0               # Max area as a multiple of the max circle
 HOLE_OVERSIZE_REVIEW_FACTOR: float = 6.0        # Blobs up to this x the max area are flagged for review, larger ignored
 HOLE_THRESHOLD_BLUR_PX: int = 3                 # Gaussian pre-blur (odd) before the backlit Otsu split
+HOLE_MIN_CIRCULARITY: float = 0.6               # 4*pi*A/P^2 a closed (interior) hole blob must reach; rejects thin spots in the paper
 # Edge notches (teeth of a separated stamp) are found as closing(silhouette) - silhouette.
 # The disk must be wider than one notch (~ hole diameter) but small enough not to
 # bridge a gently bowed edge; 1.8 mm = 1.5 x the nominal 1.2 mm hole. Coarse gauges
@@ -104,6 +105,12 @@ FOCUS_PYRAMID_LEVELS: int = 4                   # Laplacian-pyramid levels for s
 ROI_EXPECTED_HOLE_DIAMETER_UM: float = 1200.0   # Nominal perforation hole diameter (spec: roughly 1-2 mm)
 ROI_CROP_SCALE_FACTOR: float = 3.0              # Crop side = factor x expected diameter (spec example: three times)
 ROI_MIN_CROP_PX: int = 33                       # Lower bound only, so tiny scales still give a usable crop
+
+# -------------------------------------------------------------------------
+# Step 11: Subpixel Contour (edge teeth)
+# -------------------------------------------------------------------------
+TOOTH_ARC_MASK_MARGIN_UM: float = 60.0       # Notch mask dilation so the traced edge falls inside (soft edges are ~10 px wide)
+TOOTH_ARC_END_TRIM_FRACTION: float = 0.1     # Arc length dropped at each end, where the punched arc meets the torn tooth tip
 
 # -------------------------------------------------------------------------
 # Step 12 & 13: Geometric and Shape Extraction Settings
@@ -135,7 +142,13 @@ GLCM_ANGLES_DEG: List[float] = [0.0]       # GLCM pixel-pair offset angles in de
 # -------------------------------------------------------------------------
 # Step 16: Angular Brightness Sampling Settings
 # -------------------------------------------------------------------------
-PAPER_SAMPLE_OFFSET_UM: float = 60.0       # Fixed radial offset outward onto paper beside the hole
+# Paper brightness beside the hole is the mean over a radial band outside the
+# traced (backlit) edge. Torch-lit edges blur over ~200-350 um and the torch
+# frames sit a few pixels off the backlit one after registration, so a single
+# point close to the edge mixed paper with background. The band starts beyond
+# that and covers the zone where paper bunching shows.
+PAPER_SAMPLE_BAND_UM: Tuple[float, float] = (100.0, 300.0)
+PAPER_SAMPLE_BAND_STEPS: int = 5           # Radii averaged across the band
 
 # -------------------------------------------------------------------------
 # Step 19: Reference Group Construction Settings
@@ -160,6 +173,13 @@ SCALE_METHOD: str = "pooled_edge_factor"
 POOLED_SCALE_MIN_EDGE_SIZE: int = 8
 MEAN_AD_SCALE_CONSTANT: float = 0.7979     # sqrt(2/pi): mean-absolute-deviation consistency factor, used only when MAD = 0
 ZERO_SPREAD_RELATIVE_FLOOR: float = 0.01   # Spread floor as a fraction of |median| when the whole group is identical
+# Robust-z spread floor for the micrometre geometry fields: the MAD of a normal
+# error of this many pixels (sub-pixel edge tracing resolution). Genuine teeth
+# can agree more closely than the tracing resolves; without the floor a
+# sub-pixel difference scored z > 7.
+GEOMETRY_RESOLUTION_PX: float = 0.25
+GEOMETRY_UM_FIELDS: List[str] = ["mean_radius_um", "radius_std_um", "fourier_c1", "fourier_c2",
+                                 "fourier_c3", "fourier_c4", "residual_wobble"]
 
 # -------------------------------------------------------------------------
 # Step 21: Outlier Thresholding
@@ -189,6 +209,34 @@ REGION_MERGE_MAX_GAP: int = 1              # Bridge single non-flagged hole gaps
 REGION_MERGE_ENABLED: bool = True          # Toggle for merging runs separated by one unflagged hole
 REGION_MIN_RUN_LENGTH: int = 2             # Flagged holes needed for a candidate region (a lone flag is not a cluster)
 REGION_PITCH_GAP_FACTOR: float = 1.5       # Spacing above this x median pitch means a missing hole (counts as a gap)
+# Whole-edge perforation consistency (Step 22), self-referential: each value is
+# the typical tooth-to-tooth variation on one edge as a percentage of that
+# edge's own typical value (see step22 edge_consistency). An edge is flagged
+# when at least EDGE_VARIATION_MIN_EXCEEDED of these measures exceed their
+# threshold. No other stamp is used when a stamp is judged.
+# Thresholds were set once, 2026-10-26, as 1.5 x the largest variation on any
+# of the 8 edges of the two genuine captures (macro lens stamp 1 and 2,
+# nomperf), before the reperforated captures were run; the 50% headroom is for
+# genuine stamps more irregular than these two. Shadow direction is not used:
+# genuine teeth already varied by up to 75 degrees.
+EDGE_VARIATION_THRESHOLDS_PCT: Dict[str, float] = {
+    "spacing": 8.9,             # genuine max 5.9
+    "notch_depth": 5.9,         # genuine max 3.9
+    "hole_size": 16.2,          # genuine max 10.7
+    "radius_std_um": 2.1,       # genuine max 1.4
+    "fourier_c1": 0.8,          # genuine max 0.5
+    "fourier_c2": 1.7,          # genuine max 1.1
+    "fourier_c3": 10.9,         # genuine max 7.2
+    "fourier_c4": 9.6,          # genuine max 6.3
+    "residual_wobble": 1.8,     # genuine max 1.2
+    "sobel_mean": 24.4,         # genuine max 16.2
+    "sobel_std": 40.2,          # genuine max 26.8
+    "glcm_contrast": 67.5,      # genuine max 45.0
+    "glcm_homogeneity": 10.2,   # genuine max 6.8
+    "shadow_strength": 83.4,    # genuine max 55.6
+}
+EDGE_VARIATION_MIN_EXCEEDED: int = 2
+EDGE_CONSISTENCY_MIN_TEETH: int = 5        # Fewer teeth on an edge: not assessed
 
 # -------------------------------------------------------------------------
 # Step 23: Final Output Generation
@@ -250,6 +298,7 @@ def get_pipeline_constants_dict() -> Dict[str, Any]:
         "STAMP_ROTATION_WARN_DEG": STAMP_ROTATION_WARN_DEG,
         "STAMP_THRESHOLD_BLUR_PX": STAMP_THRESHOLD_BLUR_PX,
         "HOLE_THRESHOLD_BLUR_PX": HOLE_THRESHOLD_BLUR_PX,
+        "HOLE_MIN_CIRCULARITY": HOLE_MIN_CIRCULARITY,
         "NOTCH_CLOSING_DIAMETER_UM": NOTCH_CLOSING_DIAMETER_UM,
         "NOTCH_CLOSING_DOWNSCALE": NOTCH_CLOSING_DOWNSCALE,
         "REGISTRATION_RANSAC_REPROJ_PX": REGISTRATION_RANSAC_REPROJ_PX,
@@ -266,6 +315,8 @@ def get_pipeline_constants_dict() -> Dict[str, Any]:
         "ROI_EXPECTED_HOLE_DIAMETER_UM": ROI_EXPECTED_HOLE_DIAMETER_UM,
         "ROI_CROP_SCALE_FACTOR": ROI_CROP_SCALE_FACTOR,
         "ROI_MIN_CROP_PX": ROI_MIN_CROP_PX,
+        "TOOTH_ARC_MASK_MARGIN_UM": TOOTH_ARC_MASK_MARGIN_UM,
+        "TOOTH_ARC_END_TRIM_FRACTION": TOOTH_ARC_END_TRIM_FRACTION,
         "RADIUS_PROFILE_NUM_ANGLES": RADIUS_PROFILE_NUM_ANGLES,
         "FOURIER_FIT_ORDER": FOURIER_FIT_ORDER,
         "BRIGHTNESS_MISMATCH_TOLERANCE": BRIGHTNESS_MISMATCH_TOLERANCE,
@@ -276,7 +327,8 @@ def get_pipeline_constants_dict() -> Dict[str, Any]:
         "GLCM_LEVELS": GLCM_LEVELS,
         "GLCM_DISTANCES": GLCM_DISTANCES,
         "GLCM_ANGLES_DEG": GLCM_ANGLES_DEG,
-        "PAPER_SAMPLE_OFFSET_UM": PAPER_SAMPLE_OFFSET_UM,
+        "PAPER_SAMPLE_BAND_UM": list(PAPER_SAMPLE_BAND_UM),
+        "PAPER_SAMPLE_BAND_STEPS": PAPER_SAMPLE_BAND_STEPS,
         "MIN_HOLES_PER_EDGE": MIN_HOLES_PER_EDGE,
         "MAD_SCALE_CONSTANT": MAD_SCALE_CONSTANT,
         "COMBINATION_METHOD": COMBINATION_METHOD,
@@ -284,6 +336,8 @@ def get_pipeline_constants_dict() -> Dict[str, Any]:
         "POOLED_SCALE_MIN_EDGE_SIZE": POOLED_SCALE_MIN_EDGE_SIZE,
         "MEAN_AD_SCALE_CONSTANT": MEAN_AD_SCALE_CONSTANT,
         "ZERO_SPREAD_RELATIVE_FLOOR": ZERO_SPREAD_RELATIVE_FLOOR,
+        "GEOMETRY_RESOLUTION_PX": GEOMETRY_RESOLUTION_PX,
+        "GEOMETRY_UM_FIELDS": GEOMETRY_UM_FIELDS,
         "OUTLIER_TAIL_PROBABILITY": OUTLIER_TAIL_PROBABILITY,
         "MIN_REFERENCE_GROUP_SIZE": MIN_REFERENCE_GROUP_SIZE,
         "NULL_CALIBRATION_DRAWS": NULL_CALIBRATION_DRAWS,
@@ -297,6 +351,9 @@ def get_pipeline_constants_dict() -> Dict[str, Any]:
         "REGION_MERGE_ENABLED": REGION_MERGE_ENABLED,
         "REGION_MIN_RUN_LENGTH": REGION_MIN_RUN_LENGTH,
         "REGION_PITCH_GAP_FACTOR": REGION_PITCH_GAP_FACTOR,
+        "EDGE_VARIATION_THRESHOLDS_PCT": EDGE_VARIATION_THRESHOLDS_PCT,
+        "EDGE_VARIATION_MIN_EXCEEDED": EDGE_VARIATION_MIN_EXCEEDED,
+        "EDGE_CONSISTENCY_MIN_TEETH": EDGE_CONSISTENCY_MIN_TEETH,
         "OUTPUT_DISPLAY_GAMMA": OUTPUT_DISPLAY_GAMMA,
         "VALIDATION_ROC_TAIL_PROBABILITIES": VALIDATION_ROC_TAIL_PROBABILITIES,
         "QUALITY_BACKLIT_SEPARATION_PASS": QUALITY_BACKLIT_SEPARATION_PASS,

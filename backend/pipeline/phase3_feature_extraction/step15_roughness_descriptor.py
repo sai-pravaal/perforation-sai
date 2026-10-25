@@ -26,8 +26,7 @@ from backend.pipeline.phase1_calibration_registration.step02_lens_and_unit_calib
 from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
 from backend.pipeline.phase3_feature_extraction.step13_shape_deviation_descriptor import (
     _merge_descriptor,
-    evaluate_fourier_series,
-    fit_fourier_series,
+    fit_shape_model,
 )
 from backend.session.session_manager import SessionManager
 
@@ -73,25 +72,18 @@ def patch_glcm_props(patch: np.ndarray) -> tuple:
     return contrast, homogeneity
 
 
-def compute_residual_wobble(radius_profile: Dict[str, Any]) -> Optional[float]:
-    """Std of (raw radius - fitted Fourier curve) over valid angle steps, in pixels
-    (run_step15 converts it to micrometres).
+def compute_residual_wobble(radius_profile: Dict[str, Any], partial_arc: bool = False) -> Optional[float]:
+    """Std of (raw radius - Step 13's smooth fit) over valid angle steps, in pixels
+    (run_step15 converts it to micrometres). partial_arc selects the tooth
+    (Legendre) model, matching Step 13.
 
     Returns None when there is too little outline data to fit (not measured).
     """
-    angles = radius_profile.get("angles_deg", [])
-    distances = radius_profile.get("distances_px", [])
-    valid = radius_profile.get("valid_mask", [])
-
-    coeffs = fit_fourier_series(angles, distances, valid, FOURIER_FIT_ORDER)
-    if coeffs is None:
+    model = fit_shape_model(radius_profile.get("angles_deg", []), radius_profile.get("distances_px", []),
+                            radius_profile.get("valid_mask", []), FOURIER_FIT_ORDER, partial_arc)
+    if model is None:
         return None
-
-    valid_angles = [a for a, v in zip(angles, valid) if v]
-    raw = np.array([d for d, v in zip(distances, valid) if v and d is not None], dtype=np.float64)
-    if raw.size == 0:
-        return None
-    fitted = evaluate_fourier_series(coeffs, valid_angles, FOURIER_FIT_ORDER)
+    _, raw, fitted = model
     return float(np.std(raw - fitted))
 
 
@@ -135,7 +127,7 @@ def run_step15(
             glcm_contrasts.append(gc)
             glcm_homs.append(gh)
 
-        wobble_px = compute_residual_wobble(radius_profiles.get(h.hole_id, {}))
+        wobble_px = compute_residual_wobble(radius_profiles.get(h.hole_id, {}), h.type == "edge_tooth")
         wobble_um = wobble_px * upp if wobble_px is not None else None
         # None marks "no boundary patches", so Step 20 omits the field rather
         # than comparing a fabricated zero roughness.

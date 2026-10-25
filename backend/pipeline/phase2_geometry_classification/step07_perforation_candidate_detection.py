@@ -20,6 +20,7 @@ from backend.config.pipeline_constants import (
     HOLE_AREA_MAX_FACTOR,
     HOLE_AREA_MIN_FRACTION,
     HOLE_MAX_DIAMETER_MM,
+    HOLE_MIN_CIRCULARITY,
     HOLE_MIN_DIAMETER_MM,
     HOLE_OVERSIZE_REVIEW_FACTOR,
     HOLE_THRESHOLD_BLUR_PX,
@@ -188,7 +189,11 @@ def detect_perforation_candidates(
                 "reason": "larger than a single perforation (possible merged holes or paper flaw)",
             })
             continue
-        if area_min_px <= area <= area_max_px:
+        # A closed blob is a whole hole, so it must reach the full minimum hole
+        # area (HOLE_AREA_MIN_FRACTION is for teeth, which show only part of
+        # a circle) and be roughly round: thin or translucent spots in the
+        # paper also let light through but are small and irregular.
+        if math.pi * r_min_px ** 2 <= area <= area_max_px:
             x = float(stats[label, cv2.CC_STAT_LEFT])
             y = float(stats[label, cv2.CC_STAT_TOP])
             w = float(stats[label, cv2.CC_STAT_WIDTH])
@@ -197,7 +202,11 @@ def detect_perforation_candidates(
 
             # Extract contour of this component
             comp_mask = np.uint8(labels == label) * 255
-            cnts, _ = cv2.findContours(comp_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            cnts, _ = cv2.findContours(comp_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            if cnts:
+                perimeter = cv2.arcLength(cnts[0], True)
+                if perimeter <= 0 or 4.0 * math.pi * area / perimeter ** 2 < HOLE_MIN_CIRCULARITY:
+                    continue
             poly = cnts[0].reshape(-1, 2).tolist() if cnts else [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]
 
             candidates.append({

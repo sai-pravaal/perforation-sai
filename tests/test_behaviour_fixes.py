@@ -219,3 +219,52 @@ def test_step07_finds_each_edge_notch_of_a_separated_stamp():
     cv2.circle(img, (900, 700), 60, 1.0, -1)                     # one interior (closed) hole
     found = detect_perforation_candidates(img, upp)
     assert len(found) == 2 * len(xs) + 2 * len(ys) + 1
+
+
+def test_step13_tooth_arc_terms_are_stable_under_noise():
+    """A noisy circular arc (~150 deg, as a tooth shows) gives small shape terms;
+    the old 4-harmonic Fourier fit amplified the same noise by up to ~500x."""
+    from backend.pipeline.phase3_feature_extraction.step13_shape_deviation_descriptor import fit_shape_model
+    rng = np.random.default_rng(0)
+    angles = [5.0 * i for i in range(72)]
+    valid = [15 <= a <= 165 for a in angles]
+    dist = [50.0 + rng.normal(0, 0.3) if v else None for a, v in zip(angles, valid)]
+    terms, _, _ = fit_shape_model(angles, dist, valid, 4, partial_arc=True)
+    assert max(abs(t) for t in terms) < 1.0          # radius noise is 0.3 px
+
+
+def test_step17_torch_brightness_level_does_not_create_a_shadow():
+    """A torch that is uniformly brighter at a hole must not produce a shadow vector."""
+    from backend.pipeline.phase3_feature_extraction.step17_directional_profile_fitting import run_step17
+    from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
+    import tempfile
+    rows = [{"angle_deg": a, "brightness": [1.0 * 1.3, 1.0, 1.0, 1.0]} for a in range(0, 360, 5)]
+    table = {"torch_order": ["torch_1", "torch_2", "torch_3", "torch_4"], "rows": rows}
+    geometry = [{"torch_index": i + 1, "azimuth_deg": 90.0 * i} for i in range(4)]
+    with tempfile.TemporaryDirectory() as tmp:
+        sm = SessionManager(tmp)
+        sm.create_session("s")
+        hole = HoleRecord("top_01", [0, 0], [0, 0, 1, 1], [], "edge_tooth", "top", 1)
+        out = run_step17("s", [hole], {"top_01": table}, geometry, sm)
+    assert out["top_01"]["strength"] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_step22_edge_consistency_separates_machine_and_irregular_edges():
+    """Self-referential: teeth alike (one line, one spacing, one size) pass; unlike teeth are flagged."""
+    from backend.config.pipeline_constants import COMPOSITE_FIELD_ORDER
+    from backend.pipeline.phase4_statistics_output.step22_spatial_clustering import edge_consistency
+    rng = np.random.default_rng(1)
+    upp, pitch_px, radius_um = 10.0, 150.0, 500.0
+    def teeth(spread):
+        out = []
+        for i in range(14):
+            vector = [0.0] * len(COMPOSITE_FIELD_ORDER)
+            vector[COMPOSITE_FIELD_ORDER.index("mean_radius_um")] = radius_um * (1 + rng.normal(0, spread))
+            out.append({"centre_px": [100 + i * pitch_px * (1 + rng.normal(0, spread)),
+                                      200 + rng.normal(0, spread * pitch_px)],
+                        "vector": vector, "hole_id": f"top_{i + 1:02d}"})
+        return out
+    alike, unlike = edge_consistency(teeth(0.01), "top", upp), edge_consistency(teeth(0.15), "top", upp)
+    assert not alike["inconsistent"]
+    assert unlike["inconsistent"] and {"spacing", "notch_depth"} <= set(unlike["exceeded"])
+    assert edge_consistency(teeth(0.01)[:4], "top", upp) is None   # too few teeth to judge

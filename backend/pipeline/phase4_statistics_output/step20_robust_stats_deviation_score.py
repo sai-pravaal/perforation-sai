@@ -27,6 +27,8 @@ from scipy.stats import median_abs_deviation
 from backend.config.pipeline_constants import (
     COMBINATION_METHOD,
     COMPOSITE_FIELD_ORDER,
+    GEOMETRY_RESOLUTION_PX,
+    GEOMETRY_UM_FIELDS,
     MAD_SCALE_CONSTANT,
     MEAN_AD_SCALE_CONSTANT,
     POOLED_SCALE_MIN_EDGE_SIZE,
@@ -96,10 +98,11 @@ def _circular_direction_z(
     return z, centre, mad, True
 
 
-def robust_z_details(value_vec: np.ndarray, group_matrix: np.ndarray):
+def robust_z_details(value_vec: np.ndarray, group_matrix: np.ndarray, mad_floor: Optional[np.ndarray] = None):
     """Per-field robust z, group centre and MAD, and a mask of fields that contributed.
 
     group_matrix: shape (n_group, n_fields). NaN-safe (roundness is NaN for teeth).
+    mad_floor: optional per-field lower bound on the MAD (see measurement_mad_floor).
     """
     n_fields = value_vec.shape[0]
     # An all-NaN field (e.g. roundness across a group of teeth) is expected; the
@@ -121,6 +124,8 @@ def robust_z_details(value_vec: np.ndarray, group_matrix: np.ndarray):
         v = value_vec[i]
         m = median[i]
         d = mad[i]
+        if mad_floor is not None and np.isfinite(d):
+            d = mad[i] = max(d, float(mad_floor[i]))
         if not np.isfinite(v) or not np.isfinite(m) or not np.isfinite(d):
             continue  # no data for this field (e.g. roundness across teeth)
         used[i] = True
@@ -132,7 +137,8 @@ def robust_z_details(value_vec: np.ndarray, group_matrix: np.ndarray):
 
 
 def pooled_scale_z_details(
-    value_vec: np.ndarray, own_matrix: np.ndarray, other_edge_matrices: List[np.ndarray]
+    value_vec: np.ndarray, own_matrix: np.ndarray, other_edge_matrices: List[np.ndarray],
+    mad_floor: Optional[np.ndarray] = None
 ):
     """Robust z with the spread borrowed across the specimen's edges (STAT-01 follow-up).
 
@@ -169,6 +175,8 @@ def pooled_scale_z_details(
     z = np.zeros(n_fields, dtype=np.float64)
     used = np.zeros(n_fields, dtype=bool)
     scale = pooled_mad * factor
+    if mad_floor is not None:
+        scale = np.where(np.isfinite(scale), np.maximum(scale, mad_floor), scale)
     circular = n_fields == len(COMPOSITE_FIELD_ORDER)
     for i in range(n_fields):
         if circular and i == _DIR_IDX:
@@ -185,6 +193,23 @@ def pooled_scale_z_details(
         else:
             z[i] = _zero_mad_z(v - m, 0.0, stacked[:, i])
     return z, centre, scale, used, factor
+
+
+def measurement_mad_floor(microns_per_pixel: float) -> np.ndarray:
+    """Per-field lower bound on the MAD used as the robust-z denominator.
+
+    Genuine teeth can agree to within a small fraction of a pixel on a
+    geometric field (the arc tilt term spread 0.09 px on a reference stamp),
+    so a sub-pixel difference became z = 7 or more. A spread below what the
+    edge tracing can resolve is not evidence of consistency, so for the
+    micrometre geometry fields the MAD is floored at the MAD of a normal
+    error of GEOMETRY_RESOLUTION_PX. A floor only ever lowers |z|.
+    """
+    floor = np.zeros(len(COMPOSITE_FIELD_ORDER), dtype=np.float64)
+    resolution_mad = MAD_SCALE_CONSTANT * GEOMETRY_RESOLUTION_PX * float(microns_per_pixel)
+    for name in GEOMETRY_UM_FIELDS:
+        floor[COMPOSITE_FIELD_ORDER.index(name)] = resolution_mad
+    return floor
 
 
 def robust_z_scores(value_vec: np.ndarray, group_matrix: np.ndarray):
@@ -250,6 +275,11 @@ def run_step20(
     session_dir = session_manager.get_session_dir(session_id)
     manifest = session_manager.get_manifest_manager(session_id)
     holes_dir = session_dir / "holes"
+    calibration = session_dir / "stages" / "calibration.json"
+    mad_floor: Optional[np.ndarray] = None
+    if calibration.exists():
+        with open(calibration, "r", encoding="utf-8") as f:
+            mad_floor = measurement_mad_floor(float(json.load(f)["microns_per_pixel"]))
 
     scores: Dict[str, Dict[str, Any]] = {}
 
@@ -296,11 +326,11 @@ def run_step20(
             own_edge = edge_members.get(h.edge, [])
             if h.hole_id in own_edge and len(own_edge) >= POOLED_SCALE_MIN_EDGE_SIZE and other_edges:
                 z, median_arr, mad_arr, used, edge_factor = pooled_scale_z_details(
-                    vector, group_matrix, other_edges)
+                    vector, group_matrix, other_edges, mad_floor)
                 scale_method = "pooled_edge_factor"
                 pool_sizes = [len(group_vectors)] + [m.shape[0] for m in other_edges]
             else:
-                z, median_arr, mad_arr, used = robust_z_details(vector, group_matrix)
+                z, median_arr, mad_arr, used = robust_z_details(vector, group_matrix, mad_floor)
             per_field_z = [float(x) for x in z]
             dof = int(np.sum(used))
             # A field with no usable group data has no centre/MAD: store null

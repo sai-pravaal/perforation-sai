@@ -17,7 +17,12 @@ import numpy as np
 from skimage import measure
 from skimage.filters import threshold_otsu
 
-from backend.config.pipeline_constants import OUTPUT_DISPLAY_GAMMA
+from backend.config.pipeline_constants import (
+    OUTPUT_DISPLAY_GAMMA,
+    TOOTH_ARC_END_TRIM_FRACTION,
+    TOOTH_ARC_MASK_MARGIN_UM,
+)
+from backend.pipeline.phase1_calibration_registration.step02_lens_and_unit_calibration import CalibrationRecord
 from backend.pipeline.phase2_geometry_classification.step07_perforation_candidate_detection import HoleRecord
 from backend.session.session_manager import SessionManager
 
@@ -67,10 +72,61 @@ def _select_hole_contour(contours: List[np.ndarray], shape: tuple) -> np.ndarray
     return min(contours, key=lambda c: float(np.min(np.hypot(c[:, 0] - cy, c[:, 1] - cx))))
 
 
-def extract_subpixel_outline(backlit_crop: np.ndarray) -> List[List[float]]:
+def notch_mask_in_crop(notch_outline_px: List[List[float]], centre_px: List[float], shape: tuple,
+                      margin_px: float) -> np.ndarray:
+    """Rasterise a tooth's Step 7 notch outline (frame coordinates) into its Step 9 crop.
+
+    getRectSubPix maps crop pixel (u, v) to frame (u + cx - (w-1)/2, v + cy - (h-1)/2).
+    The mask is dilated by margin_px so the traced edge, which lies on the
+    notch boundary, falls inside it.
+    """
+    h, w = shape
+    offset = np.array([centre_px[0] - (w - 1) / 2.0, centre_px[1] - (h - 1) / 2.0])
+    pts = np.round(np.asarray(notch_outline_px, dtype=np.float64) - offset).astype(np.int32)
+    mask = np.zeros((h, w), np.uint8)
+    if pts.shape[0] >= 3:
+        cv2.fillPoly(mask, [pts.reshape(-1, 1, 2)], 255)
+    k = 2 * max(1, int(round(margin_px))) + 1
+    return cv2.dilate(mask, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k, k)))
+
+
+def _tooth_arc(contours: List[np.ndarray], mask: np.ndarray) -> Optional[np.ndarray]:
+    """The run of traced edge that borders this tooth's own notch.
+
+    In the backlit crop a tooth's notch is open to the bright background, so
+    the traced edge runs on along the neighbouring teeth and paper edge. Only
+    the longest contiguous run of points inside the notch mask is the
+    punched arc; TOOTH_ARC_END_TRIM_FRACTION of its length is dropped at each
+    end, where the arc turns into the torn tooth tips.
+    """
+    best: Optional[np.ndarray] = None
+    for c in contours:
+        rows = np.clip(np.round(c[:, 0]).astype(int), 0, mask.shape[0] - 1)
+        cols = np.clip(np.round(c[:, 1]).astype(int), 0, mask.shape[1] - 1)
+        inside = mask[rows, cols] > 0
+        start = None
+        for i, flag in enumerate(np.append(inside, False)):
+            if flag and start is None:
+                start = i
+            elif not flag and start is not None:
+                if best is None or i - start > best.shape[0]:
+                    best = c[start:i]
+                start = None
+    if best is None or best.shape[0] < 5:
+        return None
+    seg = np.hypot(*np.diff(best, axis=0).T)
+    cum = np.concatenate([[0.0], np.cumsum(seg)])
+    trim = TOOTH_ARC_END_TRIM_FRACTION * cum[-1]
+    keep = (cum >= trim) & (cum <= cum[-1] - trim)
+    return best[keep] if np.count_nonzero(keep) >= 5 else best
+
+
+def extract_subpixel_outline(backlit_crop: np.ndarray, notch_mask: Optional[np.ndarray] = None) -> List[List[float]]:
     """Run marching squares at the midpoint threshold and select the hole's contour.
 
-    Returns an ordered list of subpixel [x, y] coordinates (image coordinates).
+    notch_mask (edge teeth): restrict the result to the arc of this tooth's
+    own notch (see _tooth_arc). Returns an ordered list of subpixel [x, y]
+    coordinates (image coordinates).
     """
     threshold = compute_midpoint_threshold(backlit_crop)
     # find_contours returns rows of (row, col) == (y, x) at subpixel precision.
@@ -78,7 +134,9 @@ def extract_subpixel_outline(backlit_crop: np.ndarray) -> List[List[float]]:
     if not contours:
         return []
 
-    best = _select_hole_contour(contours, backlit_crop.shape)
+    best = _tooth_arc(contours, notch_mask) if notch_mask is not None else None
+    if best is None:
+        best = _select_hole_contour(contours, backlit_crop.shape)
     # Convert (row, col) -> (x, y)
     outline = [[float(pt[1]), float(pt[0])] for pt in best]
     return outline
@@ -88,7 +146,8 @@ def run_step11(
     session_id: str,
     holes: List[HoleRecord],
     crops: Dict[str, Dict[str, np.ndarray]],
-    session_manager: Optional[SessionManager] = None
+    session_manager: Optional[SessionManager] = None,
+    calibration_record: Optional[CalibrationRecord] = None
 ) -> Dict[str, List[List[float]]]:
     """Execute Step 11: Subpixel Contour Extraction.
 
@@ -102,6 +161,12 @@ def run_step11(
     manifest = session_manager.get_manifest_manager(session_id)
     holes_dir = session_dir / "holes"
 
+    upp = calibration_record.microns_per_pixel if calibration_record is not None else None
+    if upp is None:
+        with open(session_dir / "stages" / "calibration.json", "r", encoding="utf-8") as f:
+            upp = float(json.load(f)["microns_per_pixel"])
+    margin_px = TOOTH_ARC_MASK_MARGIN_UM / max(1e-6, upp)
+
     outlines: Dict[str, List[List[float]]] = {}
     image_entries: List[Dict[str, Any]] = []
 
@@ -113,7 +178,10 @@ def run_step11(
             outlines[h.hole_id] = []
             continue
 
-        outline = extract_subpixel_outline(backlit)
+        notch_mask = None
+        if h.type == "edge_tooth" and len(h.raw_outline_px) >= 3:
+            notch_mask = notch_mask_in_crop(h.raw_outline_px, h.centroid_px, backlit.shape, margin_px)
+        outline = extract_subpixel_outline(backlit, notch_mask)
         outlines[h.hole_id] = outline
 
         h_dir = holes_dir / h.hole_id

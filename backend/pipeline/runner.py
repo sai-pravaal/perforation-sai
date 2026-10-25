@@ -237,7 +237,7 @@ class PipelineRunner:
         elif step_id == 10:
             ctx["fused"] = run_step10(sid, ctx["holes"], ctx["crops"], sm)
         elif step_id == 11:
-            ctx["outlines"] = run_step11(sid, ctx["holes"], self._working_crops(ctx), sm)
+            ctx["outlines"] = run_step11(sid, ctx["holes"], self._working_crops(ctx), sm, ctx.get("calibration"))
         elif step_id == 12:
             ctx["profiles"] = run_step12(sid, ctx["holes"], ctx["outlines"], sm)
         elif step_id == 13:
@@ -307,8 +307,9 @@ class PipelineRunner:
             ctx["holes"] = holes
             ctx["reference_groups"] = build_reference_groups(holes)
 
-        # Step 23 only draws on the overview, so the display copy is enough there.
-        if start_step == 23 and "frames" not in ctx:
+        # Every run ends with Step 23, which only draws on the overview, so
+        # restarts after the image steps load the display copy for it.
+        if start_step > LAST_IMAGE_STEP and "frames" not in ctx:
             frames = self._load_registered_frames(session_id, session_dir)
             if frames and stamp_frame is not None:
                 for rec in frames.values():

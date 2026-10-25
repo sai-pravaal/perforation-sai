@@ -172,7 +172,7 @@ class SessionManager:
         6: ["stages/stamp_frame.json", "stages/stamp_boundary.png"],
         7: ["stages/holes.json", "stages/oversize_candidates.json"],
         9: ["holes"],
-        22: ["stages/candidate_regions.json"],
+        22: ["stages/candidate_regions.json", "stages/edge_consistency.json"],
         23: ["results/annotated_overview.png", "results/results_table.csv", "results/report.pdf"],
     }
     # Per-hole outputs (relative to holes/<hole_id>/) by producing step.

@@ -69,19 +69,30 @@ def run_step17(
             raise ValueError(f"Step 17: illumination geometry has no azimuth for {', '.join(missing)}")
         phis = np.radians([azimuth_by_tag[t] for t in torch_order])
 
+        table = np.asarray([r.get("brightness", []) for r in rows
+                            if len(r.get("brightness", [])) == phis.size], dtype=np.float64)
+        # Each torch's own illumination level at this hole (distance, falloff,
+        # battery) is common to every boundary point. Left in, it adds the same
+        # vector at every point and dominates the sum, so the "shadow" mostly
+        # measured where the hole sits in the light field. Each torch column is
+        # therefore divided by its median around the hole: only the angular
+        # variation of shading around the edge is fitted.
+        if table.ndim == 2 and table.shape[0] and phis.size >= 3:
+            level = np.median(table, axis=0)
+            table = table / np.where(level > 1e-9, level, 1.0)
         sum_u, sum_v = 0.0, 0.0
         b_values: List[float] = []
-        for row in rows:
-            brightness = np.asarray(row.get("brightness", []), dtype=np.float64)
-            if brightness.size < 3 or brightness.size != phis.size:
-                continue
+        for brightness in (table if table.ndim == 2 and phis.size >= 3 else []):
             u, v, b = fit_point_cosine(phis, brightness)
             sum_u += u
             sum_v += v
             b_values.append(b)
 
         if b_values:
-            strength: Optional[float] = float(math.hypot(sum_u, sum_v))
+            # Mean resultant rather than the plain sum, so a tooth showing fewer
+            # boundary points is on the same scale as one showing more.
+            n = len(b_values)
+            strength: Optional[float] = float(math.hypot(sum_u, sum_v) / n)
             direction_deg: Optional[float] = float(math.degrees(math.atan2(sum_v, sum_u)) % 360.0)
             conf = {"mean": float(np.mean(b_values)), "min": float(np.min(b_values)), "max": float(np.max(b_values))}
         else:
