@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 )
 
 from frontend.client import Client
+from frontend.widgets.scroll import HorizontalStrip, install_scroll_area
 from frontend.widgets.breakdown_table import BreakdownTable
 from frontend.widgets.compass_plot import CompassPlot
 from frontend.widgets.graphics_view_sync import load_display_pixmap
@@ -60,6 +61,8 @@ class _PillButton(QPushButton):
 class ResultsTab(QWidget):
     """Summary header, Hole Detail / Shadow Vectors / Edge Summary / Regions sub-views, settings."""
 
+    export_requested = Signal()
+
     def __init__(self, client: Optional[Client] = None) -> None:
         super().__init__()
         self.client = client or Client()
@@ -67,13 +70,40 @@ class ResultsTab(QWidget):
         self._citations: Dict[str, Dict[str, Any]] = {}
         self._loaded = False
 
+        # ---- overall result: one plain-language headline for the whole stamp
+        self.verdict_box = QFrame()
+        self.verdict_box.setObjectName("card")
+        self.verdict_headline = QLabel("Results are loaded when a run has finished.")
+        self.verdict_headline.setWordWrap(True)
+        self.verdict_headline.setStyleSheet("font-size: 15px; font-weight: 600;")
+        self.verdict_explanation = QLabel("")
+        self.verdict_explanation.setWordWrap(True)
+        self.verdict_edges = QLabel("")
+        self.verdict_edges.setWordWrap(True)
+        verdict_layout = QVBoxLayout(self.verdict_box)
+        verdict_layout.addWidget(self.verdict_headline)
+        verdict_layout.addWidget(self.verdict_explanation)
+        verdict_layout.addWidget(self.verdict_edges)
+
         # ---- summary header (Features 18, 20)
+        # One pill per region / flagged hole, with long evidence text. They sit in
+        # a scrolling strip: laid out directly in the header they added up to
+        # thousands of pixels and forced the whole window wider than the screen.
         self.pills = QHBoxLayout()
         self.pills.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        pills_host = QWidget()
+        pills_host.setLayout(self.pills)
+        self.pills_scroll = HorizontalStrip()
+        self.pills_scroll.setWidgetResizable(True)
+        self.pills_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.pills_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.pills_scroll.setFixedHeight(56)
+        self.pills_scroll.setWidget(pills_host)
         self.summary_list = QListWidget()  # evidence table travelling with the pills
         self.summary_list.setMaximumHeight(140)
         self.summary_list.itemClicked.connect(self._on_summary_item)
         self.low_confidence = QLabel("Low-confidence holes: none loaded")
+        self.low_confidence.setWordWrap(True)  # the list of hole ids can be long
         refresh = QPushButton("Refresh results")
         refresh.clicked.connect(self.load_results_summary)
         self.export_button = QPushButton("Export session")
@@ -81,7 +111,7 @@ class ResultsTab(QWidget):
         self.pdf_button = QPushButton("Export PDF Report")
         self.pdf_button.clicked.connect(self.export_pdf)
         header_row = QHBoxLayout()
-        header_row.addLayout(self.pills, 1)
+        header_row.addWidget(self.pills_scroll, 1)
         header_row.addWidget(refresh)
         header_row.addWidget(self.export_button)
         header_row.addWidget(self.pdf_button)
@@ -157,8 +187,18 @@ class ResultsTab(QWidget):
         self.region_title.setObjectName("cardTitle")
         self.region_statement = QLabel("")
         self.region_statement.setWordWrap(True)
+        # One button per member hole (up to ~17): in a scrolling strip, because laid out
+        # directly they set the width of the whole tab (2,900 px) and pushed it off screen.
         self.region_members = QHBoxLayout()
         self.region_members.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        members_host = QWidget()
+        members_host.setLayout(self.region_members)
+        self.region_members_scroll = HorizontalStrip()
+        self.region_members_scroll.setWidgetResizable(True)
+        self.region_members_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.region_members_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.region_members_scroll.setFixedHeight(92)
+        self.region_members_scroll.setWidget(members_host)
         self.region_table = QTableWidget(0, 3)
         self.region_table.setHorizontalHeaderLabels(("Descriptor", "Mean z", "Mean |z|"))
         self.region_table.horizontalHeader().setStretchLastSection(True)
@@ -166,7 +206,7 @@ class ResultsTab(QWidget):
         region_card.setObjectName("card")
         card_layout = QVBoxLayout(region_card)
         card_layout.addWidget(self.region_title)
-        card_layout.addLayout(self.region_members)
+        card_layout.addWidget(self.region_members_scroll)
         card_layout.addWidget(self.region_statement)
         card_layout.addWidget(self.region_table)
         regions = QWidget()
@@ -194,7 +234,10 @@ class ResultsTab(QWidget):
 
         self.message = QLabel("")
         self.message.setWordWrap(True)
-        layout = QVBoxLayout(self)
+        # The page is taller than a small window: scrolling keeps every widget at its own
+        # size (squeezed, they overlapped: text sat on top of the strips' scrollbars).
+        layout = QVBoxLayout(install_scroll_area(self))
+        layout.addWidget(self.verdict_box)
         layout.addLayout(header_row)
         layout.addWidget(self.summary_list)
         layout.addWidget(self.low_confidence)
@@ -237,6 +280,7 @@ class ResultsTab(QWidget):
         if payload is None:
             return
         self._loaded = True
+        self._show_verdict(payload.get("verdict"))
         holes: List[Dict[str, Any]] = payload.get("holes", [])
         regions: List[Dict[str, Any]] = payload.get("regions", [])
         _clear_layout(self.pills)
@@ -271,13 +315,40 @@ class ResultsTab(QWidget):
 
         self._populate_holes([h["hole_id"] for h in holes])
         self.region_list.clear()
+        _clear_layout(self.region_members)
+        self.region_table.setRowCount(0)
         for r in regions:
             item = QListWidgetItem(f"{r.get('evidence')} [{r.get('band')}]")
             item.setData(Qt.ItemDataRole.UserRole, r.get("region_id"))
             self.region_list.addItem(item)
+        if regions:
+            self.region_title.setText("Select a region.")
+            self.region_statement.setText("")
+        else:
+            placeholder = QListWidgetItem("No candidate regions")
+            placeholder.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.region_list.addItem(placeholder)
+            self.region_title.setText("No candidate regions")
+            self.region_statement.setText(
+                "A region is reported when the teeth along an edge are not alike (uneven spacing, notch depth "
+                "or size). No edge failed that check on this stamp, so there is nothing to show here.")
         self.load_shadow_vectors()
         self.load_edge_summary()
         self.message.setText("")
+
+    def _show_verdict(self, verdict: Optional[Dict[str, Any]]) -> None:
+        """Headline box: n of m holes flagged, what it means, evidence strength, per-edge status."""
+        if not isinstance(verdict, dict):
+            return
+        level = {"likely": "high", "possible": "medium", "none": "low"}.get(verdict.get("level"), "")
+        self.verdict_headline.setText(str(verdict.get("headline", "")))
+        self.verdict_headline.setProperty("severity", level)
+        self.verdict_headline.style().unpolish(self.verdict_headline)
+        self.verdict_headline.style().polish(self.verdict_headline)
+        self.verdict_explanation.setText(str(verdict.get("explanation", "")))
+        self.verdict_box.setToolTip(str(verdict.get("evidence_note", "")))
+        lines = [f"{str(e.get('edge', '')).title()}: {e.get('detail')}" for e in verdict.get("edges", [])]
+        self.verdict_edges.setText("   |   ".join(lines))
 
     def _populate_holes(self, hole_ids: List[str]) -> None:
         for combo, extra in ((self.hole_select, None), (self.compare_select, AUTO)):
@@ -445,11 +516,8 @@ class ResultsTab(QWidget):
                                  f"captured {meta.get('captured_at')}")
 
     def export_session(self) -> None:
-        """Request a packaged session archive in the background."""
-        if not self._session_id:
-            return
-        self.message.setText("Exporting session…")
-        self.client.call_async("export_session", self._session_id, on_done=self._on_export_done)
+        """Ask the main window to export (it owns the save dialog and the result message)."""
+        self.export_requested.emit()
 
     def export_pdf(self) -> None:
         """Feature 20: build the report in the background, then let the user choose where to save it."""
@@ -471,10 +539,6 @@ class ResultsTab(QWidget):
             self.message.setText(f"Report saved to {target}")
         else:
             self.message.setText(f"Report written to {path}")
-
-    def _on_export_done(self, response: Dict[str, Any]) -> None:
-        path, error = Client.unwrap(response, "Export failed.")
-        self.message.setText(error or f"Session archive written to {path}")
 
     def run_quality_gate(self) -> None:
         if not self._session_id:

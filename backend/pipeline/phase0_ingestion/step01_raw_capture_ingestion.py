@@ -123,9 +123,10 @@ def run_step01(
         raise ValueError(f"session_log.json must contain exactly 4 torch records, found {len(torches)}")
 
     camera_settings = session_log.get("camera_settings", {})
-    for key in CAMERA_MATCH_KEYS:
-        if key not in camera_settings:
-            logger.warning(f"Camera setting '{key}' not specified in session_log.json")
+    # Camera settings are an optional record (nothing downstream reads them).
+    unset = [key for key in CAMERA_MATCH_KEYS if camera_settings.get(key) in (None, "", 0)]
+    if unset:
+        logger.info("Camera settings not recorded in session_log.json: %s", ", ".join(unset))
 
     torch_meta_map: Dict[str, Dict[str, Any]] = {
         t.get("torch_id", f"torch_{i+1}"): t

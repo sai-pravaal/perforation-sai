@@ -132,7 +132,7 @@ class PdfReportGenerator:
         flagged = [r for r in rows if str(r.get("is_outlier")).lower() == "true"]
         for line in [
             f"Session ID: {session_id}",
-            f"Specimen ID: {session_log.get('specimen_id', 'N/A')}",
+            f"Specimen ID: {session_log.get('specimen_id') or 'not entered'}",
             f"Capture timestamp: {session_log.get('capture_timestamp', 'N/A')}",
             f"Status: {manifest_data.get('status', 'unknown')}",
             f"Holes analysed: {len(rows)} (flagged for review: {len(flagged)}; candidate regions: {len(regions)})",

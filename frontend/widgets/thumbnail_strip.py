@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Optional, Set
+from collections import deque
+from typing import Any, Deque, Dict, Iterable, Optional, Set
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QScrollArea, QVBoxLayout, QWidget
 
-from frontend.widgets.graphics_view_sync import load_display_pixmap
+from frontend.widgets.graphics_view_sync import load_thumbnail_pixmap
+from frontend.widgets.scroll import HorizontalStrip
 
 THUMB_PX = 96
+BATCH_SIZE = 8          # thumbnails built per timer tick, so a step adding hundreds of images never freezes the window
+BATCH_INTERVAL_MS = 15
 
 
 def low_confidence_badge(hole_record: Dict[str, Any]) -> Optional[QLabel]:
@@ -22,7 +26,7 @@ def low_confidence_badge(hole_record: Dict[str, Any]) -> Optional[QLabel]:
     return badge
 
 
-class ThumbnailStrip(QScrollArea):
+class ThumbnailStrip(HorizontalStrip):
     """Horizontally scrolling 96x96 thumbnails appended as manifest entries appear."""
 
     image_clicked = Signal(dict)
@@ -38,8 +42,14 @@ class ThumbnailStrip(QScrollArea):
         self._row.setAlignment(Qt.AlignmentFlag.AlignLeft)
         self.setWidget(self._content)
         self.low_confidence_holes: Set[str] = set()
+        self._queue: Deque[Dict[str, Any]] = deque()
+        self._timer = QTimer(self)
+        self._timer.setInterval(BATCH_INTERVAL_MS)
+        self._timer.timeout.connect(self._add_batch)
 
     def clear(self) -> None:
+        self._queue.clear()
+        self._timer.stop()
         while self._row.count():
             item = self._row.takeAt(0)
             if item.widget():
@@ -51,11 +61,22 @@ class ThumbnailStrip(QScrollArea):
         self.append_images(images)
 
     def append_images(self, images: Iterable[Dict[str, Any]]) -> None:
-        """Append new manifest entries and keep the newest visible."""
-        for image in images:
-            self._row.addWidget(self._thumb(image))
+        """Queue new manifest entries; they are added a few at a time, newest kept in view."""
+        self._queue.extend(images)
+        if self._queue and not self._timer.isActive():
+            self._timer.start()
+
+    def _add_batch(self) -> None:
+        for _ in range(min(BATCH_SIZE, len(self._queue))):
+            self._row.addWidget(self._thumb(self._queue.popleft()))
         bar = self.horizontalScrollBar()
         bar.setValue(bar.maximum())
+        if not self._queue:
+            self._timer.stop()
+
+    def pending_count(self) -> int:
+        """Thumbnails queued but not yet built."""
+        return len(self._queue)
 
     def _thumb(self, image: Dict[str, Any]) -> QWidget:
         cell = QWidget()
@@ -63,7 +84,7 @@ class ThumbnailStrip(QScrollArea):
         col.setContentsMargins(2, 2, 2, 2)
         button = QPushButton()
         button.setFixedSize(THUMB_PX, THUMB_PX)
-        pixmap = load_display_pixmap(image.get("abs_path"))
+        pixmap = load_thumbnail_pixmap(image)
         if not pixmap.isNull():
             button.setIcon(pixmap.scaled(THUMB_PX, THUMB_PX, Qt.AspectRatioMode.KeepAspectRatio,
                                          Qt.TransformationMode.SmoothTransformation))

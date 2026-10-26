@@ -59,6 +59,7 @@ from backend.pipeline.phase4_statistics_output.step20_robust_stats_deviation_sco
 from backend.pipeline.phase4_statistics_output.step21_outlier_thresholding import run_step21
 from backend.pipeline.phase4_statistics_output.step22_spatial_clustering import run_step22
 from backend.pipeline.phase4_statistics_output.step23_final_output_generation import run_step23
+from backend.pipeline.thumbnails import ensure_thumbnails
 from backend.reporting.version_stamp import stamp_session
 from backend.session.session_manager import SessionManager
 
@@ -168,6 +169,7 @@ class PipelineRunner:
                 manifest.set_status("failed")
                 self._emit(progress_callback, step_id, "failed", detail=str(exc))
                 return {"status": "failed", "failed_step": step_id, "error": str(exc)}
+            self._make_previews(session_id)
             self._emit(progress_callback, step_id, "complete")
 
         manifest.set_status("complete")
@@ -203,6 +205,14 @@ class PipelineRunner:
             callback(event)
         except Exception:  # a UI callback must never break the pipeline
             logger.warning("progress_callback raised; ignoring", exc_info=True)
+
+    def _make_previews(self, session_id: str) -> None:
+        """Small previews of the images the last step added, so the UI never decodes full-size frames."""
+        try:
+            ensure_thumbnails(self.session_manager.get_session_dir(session_id),
+                              self.session_manager.get_manifest_manager(session_id))
+        except Exception:
+            logger.warning("Thumbnail generation failed for %s", session_id, exc_info=True)
 
     def _execute_step(self, step_id: int, ctx: Dict[str, Any]) -> None:
         """Run one step, reading and writing its pieces of the in-memory context."""

@@ -22,6 +22,7 @@ from backend.config.pipeline_constants import (
     BRIGHTNESS_MISMATCH_TOLERANCE,
     COMPOSITE_FIELD_ORDER,
     EDGE_VARIATION_MIN_EXCEEDED,
+    VERDICT_LIKELY_EDGE_FRACTION,
     MAD_SCALE_CONSTANT,
     MIN_HOLES_PER_EDGE,
     FIELD_DRIVER_Z,
@@ -46,7 +47,7 @@ from backend.pipeline.phase4_statistics_output.step19_reference_group_constructi
 from backend.pipeline.phase4_statistics_output.step20_robust_stats_deviation_score import robust_z_scores
 from backend.pipeline.runner import PipelineRunner
 from backend.reporting.pdf_report import PdfReportGenerator
-from backend.session.archive import SessionArchiver
+from backend.session.archive import ArchiveError, SessionArchiver, SessionExistsError, SessionImporter
 from backend.session.session_manager import SessionManager
 from backend.validation.validation_engine import ValidationEngine
 
@@ -85,7 +86,8 @@ def _read_json(path: Path) -> Any:
 def _with_abs_paths(session_id: str, images: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Copy image entries adding abs_path (session-relative path resolved), for display only."""
     session_dir = _session_manager().get_session_dir(session_id)
-    return [{**img, "abs_path": str(session_dir / str(img.get("path", "")))} for img in images]
+    return [{**img, "abs_path": str(session_dir / str(img.get("path", ""))),
+             "thumb_abs_path": str(session_dir / img["thumb"]) if img.get("thumb") else None} for img in images]
 
 
 def validate_upload(session_id: str, tags: Dict[str, str]) -> Dict[str, Any]:
@@ -204,6 +206,20 @@ def save_session_log(session_id: str, log_data: Dict[str, Any]) -> bool:
         return False
 
 
+def get_session_log(session_id: str) -> Dict[str, Any]:
+    """Feature 2 (amended freeze, #35): the saved session log, so the form can be reloaded.
+
+    Returns {"success": True, "error": None, "exists": bool, "log": dict | None}.
+    "exists" is False for a session that has no log file yet.
+    """
+    try:
+        manager = _session_manager()
+        log = manager.load_session_log(session_id) if manager.session_exists(session_id) else None
+        return {"success": True, "error": None, "exists": log is not None, "log": log}
+    except Exception as exc:
+        return _safe_error(f"Unable to read the session log: {exc}")
+
+
 def acknowledge_shadow_bleed_check(session_id: str) -> bool:
     """Feature 3: record that a shadow-bleed check was acknowledged."""
     try:
@@ -266,7 +282,20 @@ def get_manifest_diff(session_id: str, since_token: int = 0) -> Dict[str, Any]:
         if not manager.session_exists(session_id):
             return {"session_id": session_id, "status": "not_found", "latest_token": 0, "new_images": [], "stages": [], "mod_token": 0}
         diff = manager.get_manifest_manager(session_id).get_manifest_diff(since_token)
-        diff["new_images"] = _with_abs_paths(session_id, diff.get("new_images") or [])
+        new_images = diff.get("new_images") or []
+        if diff.get("status") == "in_progress":
+            # A step's images are listed the moment they are written, a little
+            # before their small previews exist (the pipeline makes those right
+            # after the step). Hand the UI only images that are ready, in order,
+            # and leave the token behind the first one that is not.
+            ready = []
+            for image in new_images:
+                if not image.get("thumb"):
+                    break
+                ready.append(image)
+            new_images = ready
+            diff["latest_token"] = ready[-1]["token"] if ready else since_token
+        diff["new_images"] = _with_abs_paths(session_id, new_images)
         return diff
     except Exception as exc:
         return _safe_error(f"Unable to read manifest diff: {exc}")
@@ -706,6 +735,60 @@ def _top_drivers(score: Dict[str, Any], limit: int = 3) -> List[Dict[str, Any]]:
     return [{"descriptor": n, "z": round(v, 3)} for n, v in pairs[:limit] if v != 0.0]
 
 
+def _overall_verdict(session_id: str, holes_total: int) -> Dict[str, Any]:
+    """One consolidated, plain-language result for the whole stamp (Results tab headline).
+
+    Built only from the edge consistency check (Step 22), the check that
+    judges a stamp against its own teeth. A flagged hole is a tooth on an
+    edge whose teeth are not alike. "Evidence strength" is the share of
+    checked edges that fail: it grades how widespread the inconsistency is and
+    is NOT a calibrated probability that the stamp is altered.
+    """
+    report = _read_json(_session_manager().get_session_dir(session_id) / "stages" / "edge_consistency.json")
+    edges = [e for e in (report if isinstance(report, list) else []) if isinstance(e, dict)]
+    failed = [e for e in edges if e.get("inconsistent")]
+    checked, n_failed = len(edges), len(failed)
+    teeth_flagged = sum(int(e.get("teeth", 0)) for e in failed)
+    edge_lines = [{
+        "edge": e.get("edge"),
+        "teeth": e.get("teeth"),
+        "inconsistent": bool(e.get("inconsistent")),
+        "detail": ("teeth not alike in " + ", ".join(EDGE_MEASURE_LABELS.get(m, m) for m in e.get("exceeded", [])))
+                  if e.get("inconsistent") else "teeth are alike",
+    } for e in edges]
+    if checked == 0:
+        level, evidence = "not_assessed", None
+        headline = "No overall result: too few teeth per edge to check consistency."
+        explanation = ("Each edge needs at least 5 teeth. Review the individual holes below.")
+    elif n_failed == 0:
+        level, evidence = "none", 0
+        headline = f"0 of {holes_total} holes flagged. No sign of reperforation."
+        explanation = (f"The teeth on all {checked} checked edges are alike in spacing, notch depth and size, "
+                       f"as a perforating machine leaves them.")
+    else:
+        evidence = int(round(100.0 * n_failed / checked))
+        level = "likely" if n_failed / checked >= VERDICT_LIKELY_EDGE_FRACTION else "possible"
+        verb = "is likely" if level == "likely" else "may have been"
+        headline = (f"{teeth_flagged} of {holes_total} holes flagged. This stamp {verb} reperforated "
+                    f"(evidence strength {evidence}%).")
+        names = ", ".join(str(e.get("edge")) for e in failed)
+        explanation = (f"{n_failed} of {checked} checked edges have teeth that are not alike ({names}). "
+                       f"Genuine perforation is uniform along an edge; hand re-punched holes are not.")
+    return {
+        "level": level,
+        "headline": headline,
+        "explanation": explanation,
+        "evidence_pct": evidence,
+        "evidence_note": ("Evidence strength is the share of checked edges that fail the consistency check. "
+                          "It is not a calibrated probability: treat it as a guide for expert review."),
+        "holes_flagged": teeth_flagged,
+        "holes_total": holes_total,
+        "edges_checked": checked,
+        "edges_flagged": n_failed,
+        "edges": edge_lines,
+    }
+
+
 def get_results_summary(session_id: str) -> Dict[str, Any]:
     """Feature 18: per-hole and per-region suspicion bands, always with their evidence."""
     try:
@@ -755,7 +838,8 @@ def get_results_summary(session_id: str) -> Dict[str, Any]:
                 "evidence": evidence,
                 "low_confidence": any(m["low_confidence"] for m in members),
             })
-        return {"session_id": session_id, "holes": rows, "regions": region_rows}
+        return {"session_id": session_id, "holes": rows, "regions": region_rows,
+                "verdict": _overall_verdict(session_id, len(rows))}
     except Exception as exc:
         return _safe_error(f"Unable to load results summary: {exc}")
 
@@ -936,17 +1020,46 @@ def get_validation_report(run_id: str) -> Dict[str, Any]:
         return _safe_error(f"Unable to load validation report: {exc}")
 
 
-def export_session(session_id: str) -> str:
+def export_session(session_id: str, destination: Optional[str] = None) -> str:
     """Feature 27: package the session directory into a zip archive.
 
+    destination (amended freeze): the .zip path the user chose; without it a
+    timestamped archive is written next to the sessions folder. Any session
+    can be exported, finished or not: the user asks for it explicitly.
     Returns the archive path on success. On failure it returns the standard
     structured failure dict ({"success": False, "error": ...}), like every other
     API function, so an error message can never be mistaken for a path.
     """
     try:
-        return SessionArchiver(_session_manager()).export_session(session_id)
+        return SessionArchiver(_session_manager()).export_session(
+            session_id, allow_incomplete=True, destination=destination)
     except Exception as exc:
         return _safe_error(f"Unable to export session: {exc}")  # type: ignore[return-value]
+
+
+def import_session(archive_path: str, new_session_id: Optional[str] = None) -> Dict[str, Any]:
+    """Feature 27 (amended freeze, #36): restore a session from an exported archive.
+
+    Returns {"success": True, "error": None, "session_id", "status"}. When the
+    archive's session name is already taken: {"success": False, "error": ...,
+    "exists": True, "session_id": <taken id>, "suggested_id": <free id>} so the
+    caller can ask for another name and call again with new_session_id.
+    """
+    try:
+        manager = _session_manager()
+        result = SessionImporter(manager).import_session(archive_path, new_session_id)
+        return {"success": True, "error": None, **result}
+    except SessionExistsError as exc:
+        taken = exc.session_id
+        suggestion, n = f"{taken}_imported", 2
+        while manager.session_exists(suggestion):
+            suggestion, n = f"{taken}_imported{n}", n + 1
+        return {"success": False, "error": str(exc), "exists": True, "session_id": taken,
+                "suggested_id": suggestion}
+    except ArchiveError as exc:
+        return _safe_error(str(exc))
+    except Exception as exc:
+        return _safe_error(f"Unable to import the session: {exc}")
 
 
 def _grade(value: float, pass_at: float, warn_at: float, higher_is_better: bool) -> str:
@@ -1060,6 +1173,7 @@ __all__ = [
     "validate_upload",
     "compute_elevation",
     "save_session_log",
+    "get_session_log",
     "acknowledge_shadow_bleed_check",
     "get_brightness_warnings",
     "get_pipeline_status",
@@ -1085,5 +1199,6 @@ __all__ = [
     "run_validation",
     "get_validation_report",
     "export_session",
+    "import_session",
     "run_quality_gate",
 ]

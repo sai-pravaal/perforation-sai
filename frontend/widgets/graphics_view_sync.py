@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QImage, QPainter, QPixmap, QTransform, qRgb
+from PySide6.QtGui import QImage, QImageReader, QPainter, QPixmap, QTransform, qRgb
 from PySide6.QtWidgets import (
     QButtonGroup,
     QGraphicsPixmapItem,
@@ -43,6 +43,29 @@ def load_display_pixmap(path: Optional[str]) -> QPixmap:
     return QPixmap.fromImage(image)
 
 
+MAX_FULL_DECODE_PX = 1024  # a preview-less image with a longer side than this is not decoded on the GUI thread
+
+
+def load_thumbnail_pixmap(image: Dict[str, Any]) -> QPixmap:
+    """Pixmap for a gallery or strip thumbnail, without ever decoding a large frame on the GUI thread.
+
+    Uses the small preview the pipeline wrote (thumb_abs_path). Sessions run
+    before previews existed fall back to the full file only when it is small
+    (hole crops, judged by pixel size, not file size: a 24 MP frame can
+    compress to a few MB); big frames show a placeholder instead of freezing
+    the window.
+    """
+    thumb = image.get("thumb_abs_path")
+    if thumb:
+        return load_display_pixmap(thumb)
+    path = image.get("abs_path")
+    if path:
+        size = QImageReader(path).size()  # reads the header only
+        if size.isValid() and max(size.width(), size.height()) <= MAX_FULL_DECODE_PX:
+            return load_display_pixmap(path)
+    return QPixmap()
+
+
 class SyncedGraphicsView(QGraphicsView):
     """QGraphicsView that reports wheel zoom and drag pan so a partner view can mirror them."""
 
@@ -51,6 +74,7 @@ class SyncedGraphicsView(QGraphicsView):
     def __init__(self) -> None:
         super().__init__()
         self.setScene(QGraphicsScene(self))
+        self.setMinimumSize(160, 120)  # the default minimum (~465 px) forced the window wider than small screens
         self.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
@@ -85,6 +109,7 @@ class GraphicsViewSync(QWidget):
         self._overlay_scene = QGraphicsScene(self)  # parented so Python does not collect it
         self.overlay_view = QGraphicsView(self._overlay_scene)
         self.overlay_view.setDragMode(QGraphicsView.DragMode.ScrollHandDrag)
+        self.overlay_view.setMinimumSize(160, 120)
         self._overlay_item: Optional[QGraphicsPixmapItem] = None
         self._syncing = False
         self._sync_on = True

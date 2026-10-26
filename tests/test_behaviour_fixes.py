@@ -268,3 +268,75 @@ def test_step22_edge_consistency_separates_machine_and_irregular_edges():
     assert not alike["inconsistent"]
     assert unlike["inconsistent"] and {"spacing", "notch_depth"} <= set(unlike["exceeded"])
     assert edge_consistency(teeth(0.01)[:4], "top", upp) is None   # too few teeth to judge
+
+
+def test_thumbnails_are_small_and_the_diff_waits_for_them(tmp_path, monkeypatch):
+    """The UI gets 8-bit previews, never full frames, and only for images whose preview exists."""
+    import backend.api as api
+    from backend.pipeline.thumbnails import ensure_thumbnails
+    root = tmp_path / "sessions"
+    monkeypatch.setattr(api, "_session_manager", lambda: SessionManager(root))
+    sm = SessionManager(root)
+    sm.create_session("t")
+    sdir = sm.get_session_dir("t")
+    (sdir / "stages").mkdir(exist_ok=True)
+    big = np.full((1200, 1800), 20000, np.uint16)            # a "full frame" linear 16-bit PNG
+    cv2.imwrite(str(sdir / "stages" / "frame.png"), big)
+    cv2.imwrite(str(sdir / "stages" / "other.png"), big)
+    manifest = sm.get_manifest_manager("t")
+    manifest.set_status("in_progress")
+    manifest.add_image_entry("stages/frame.png", "registration")
+    manifest.add_image_entry("stages/other.png", "registration")
+
+    # Written but no preview yet: nothing is offered to the UI, the token does not advance.
+    early = api.get_manifest_diff("t", 0)
+    assert early["new_images"] == [] and early["latest_token"] == 0
+
+    assert ensure_thumbnails(sdir, manifest) == 2
+    ready = api.get_manifest_diff("t", 0)
+    assert len(ready["new_images"]) == 2
+    thumb = cv2.imread(ready["new_images"][0]["thumb_abs_path"], cv2.IMREAD_UNCHANGED)
+    assert thumb.dtype == np.uint8 and max(thumb.shape[:2]) == 256
+    assert thumb[0, 0] == round(255 * (20000 / 65535) ** (1 / 2.2))   # display gamma applied to linear data
+    assert ensure_thumbnails(sdir, manifest) == 0                       # already done: not repeated
+
+
+def _verdict_session(tmp_path, monkeypatch, edges, n_holes=48):
+    import backend.api as api
+    root = tmp_path / "sessions"
+    monkeypatch.setattr(api, "_session_manager", lambda: SessionManager(root))
+    sm = SessionManager(root)
+    sm.create_session("v")
+    stages = sm.get_session_dir("v") / "stages"
+    stages.mkdir(exist_ok=True)
+    holes = [{"hole_id": f"top_{i:02d}", "type": "edge_tooth", "edge": "top", "position_index": i,
+              "centroid_px": [0, 0], "bbox_px": [0, 0, 1, 1], "raw_outline_px": []} for i in range(1, n_holes + 1)]
+    (stages / "holes.json").write_text(json.dumps(holes))
+    (stages / "edge_consistency.json").write_text(json.dumps(edges))
+    return api
+
+
+def _edge(name, teeth, bad):
+    return {"edge": name, "teeth": teeth, "inconsistent": bad, "exceeded": ["spacing", "notch_depth"] if bad else []}
+
+
+def test_overall_verdict_wording_and_evidence_strength(tmp_path, monkeypatch):
+    four = lambda *bad: [_edge(n, 12, n in bad) for n in ("top", "bottom", "left", "right")]
+    api = _verdict_session(tmp_path, monkeypatch, four())
+    v = api.get_results_summary("v")["verdict"]
+    assert v["level"] == "none" and v["evidence_pct"] == 0 and v["holes_flagged"] == 0
+    assert v["headline"].startswith("0 of 48 holes flagged")
+
+    api = _verdict_session(tmp_path, monkeypatch, four("left"))
+    v = api.get_results_summary("v")["verdict"]
+    assert v["level"] == "possible" and v["evidence_pct"] == 25 and v["holes_flagged"] == 12
+    assert "12 of 48 holes flagged" in v["headline"] and "may have been" in v["headline"] and "25%" in v["headline"]
+
+    api = _verdict_session(tmp_path, monkeypatch, four("top", "bottom", "right"))
+    v = api.get_results_summary("v")["verdict"]
+    assert v["level"] == "likely" and v["evidence_pct"] == 75 and "is likely" in v["headline"]
+    assert "not a calibrated probability" in v["evidence_note"]
+
+    api = _verdict_session(tmp_path, monkeypatch, [])           # no edge had 5 teeth
+    v = api.get_results_summary("v")["verdict"]
+    assert v["level"] == "not_assessed" and v["evidence_pct"] is None

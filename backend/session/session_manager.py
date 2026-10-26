@@ -9,6 +9,7 @@ import json
 import math
 import os
 import shutil
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -152,14 +153,22 @@ class SessionManager:
 
     def reset_session(self, session_id: str) -> bool:
         """Permanently delete session folder on disk (Feature 23).
-        
-        Requires external confirmation by caller per specification.
+
+        Requires external confirmation by caller per specification. True when
+        the session no longer exists afterwards, including when there was
+        nothing to delete. A locked file (antivirus, a viewer) is retried.
         """
         sdir = self.get_session_dir(session_id)  # validates the id
         if sdir.is_dir() and sdir.resolve() != self.sessions_root.resolve():
-            shutil.rmtree(sdir)
-            return True
-        return False
+            for attempt in range(5):
+                try:
+                    shutil.rmtree(sdir)
+                    break
+                except OSError:
+                    if attempt == 4:
+                        raise
+                    time.sleep(0.2)
+        return not sdir.exists()
 
     # Session-relative outputs written by each step; a step's entries (and every
     # later step's) are removed before that step re-runs (Feature 24), so stale

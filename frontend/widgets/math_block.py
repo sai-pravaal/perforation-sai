@@ -67,6 +67,7 @@ class MathBlock(QWidget):
         self.summary = QLabel("Select a hole to see how its score was calculated.")
         self.summary.setWordWrap(True)
         self.formula = QLabel("")
+        self.formula.setWordWrap(True)
         self.formula.setStyleSheet("font-family: Consolas, Menlo, monospace;")
         self.toolbox = QToolBox()
         self._bodies: Dict[str, QLabel] = {}

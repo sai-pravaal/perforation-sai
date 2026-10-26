@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 )
 
 from frontend.client import Client
+from frontend.widgets.scroll import install_scroll_area
 
 # Fixed torch azimuths from the capture protocol (Feature 2), laid out to mirror
 # the physical rig: Torch 1 top-left ... Torch 4 bottom-right.
@@ -99,6 +100,13 @@ class TorchCard(QFrame):
     def is_complete(self) -> bool:
         return self.height_cm.value() > 0 and self.distance_cm.value() > 0
 
+    def load_record(self, record: Dict[str, Any]) -> None:
+        """Show a saved torch entry (height, distance, correction); the elevation label updates itself."""
+        self.height_cm.setValue(float(record.get("height_cm") or 0.0))
+        self.distance_cm.setValue(float(record.get("distance_cm") or 0.0))
+        self.correction_deg.setValue(float(record.get("manual_correction_deg") or 0.0))
+        self.update_elevation()
+
     def to_record(self) -> Dict[str, Any]:
         return {
             "torch_id": self.torch_id,
@@ -120,9 +128,12 @@ class SessionLogTab(QWidget):
         self.client = client or Client()
         self.session_id = QLineEdit()
         self.session_id.setPlaceholderText("Session identifier")
+        self._loaded_session_id: Optional[str] = None
+        self.session_id.editingFinished.connect(self.load_saved_log)
         self.specimen_id = QLineEdit()
-        self.specimen_id.setPlaceholderText("Specimen identifier")
+        self.specimen_id.setPlaceholderText("Specimen identifier (optional)")
         self.operator_notes = QLineEdit()
+        self.operator_notes.setPlaceholderText("Optional")
 
         self.torch_cards = {tid: TorchCard(tid, self.client) for tid in TORCH_AZIMUTHS}
         grid = QGridLayout()
@@ -149,6 +160,9 @@ class SessionLogTab(QWidget):
         camera_form.addRow("Shutter speed", self.shutter_speed)
         camera_form.addRow("ISO", self.iso)
         camera_form.addRow("White balance", self.white_balance)
+        camera_note = QLabel("Optional: recorded with the session, not used in any calculation.")
+        camera_note.setWordWrap(True)
+        camera_form.addRow(camera_note)
         camera_form.addRow(self.ball_bearing_used)
 
         self.shadow_bleed = QCheckBox(SHADOW_BLEED_TEXT)
@@ -166,7 +180,7 @@ class SessionLogTab(QWidget):
         bleed_row = QHBoxLayout()
         bleed_row.addWidget(self.shadow_bleed)
 
-        layout = QVBoxLayout(self)
+        layout = QVBoxLayout(install_scroll_area(self))
         layout.addLayout(ids)
         layout.addLayout(grid)
         layout.addWidget(camera)
@@ -176,21 +190,71 @@ class SessionLogTab(QWidget):
 
     def set_session_id(self, session_id: Optional[str]) -> None:
         self.session_id.setText(session_id or "")
+        self.load_saved_log()
+
+    def load_saved_log(self) -> None:
+        """Fill the form from the session's saved log, once per session id.
+
+        Runs when the session changes (not on every re-announcement of the same
+        id, which would overwrite what is being typed). A session with no saved
+        log leaves the form as it is, so geometry typed before choosing a
+        session is kept. The Processing gate follows what is on disk: the log
+        counts as saved when the loaded form is complete, and the shadow-bleed
+        flag is restored.
+        """
+        session_id = self.session_id.text().strip()
+        if session_id == self._loaded_session_id:
+            return
+        self._loaded_session_id = session_id
+        # The previous session's state must not unlock this one.
+        self.log_saved.emit(False)
+        self.shadow_bleed_acknowledged.emit(False)
+        if not session_id:
+            return
+        payload, error = Client.unwrap(self.client.call("get_session_log", session_id),
+                                       "Unable to read the saved session log.")
+        if error:
+            self.message.setText(error)
+            return
+        log = payload.get("log") if isinstance(payload, dict) else None
+        if not log:
+            return
+        self._fill_from_log(log)
+        acknowledged = bool(log.get("shadow_bleed_acknowledged"))
+        self.shadow_bleed.blockSignals(True)
+        self.shadow_bleed.setChecked(acknowledged)
+        self.shadow_bleed.blockSignals(False)
+        complete = not self._missing_fields()
+        self.message.setText("Saved session log loaded." if complete else "Partly filled session log loaded.")
+        self.log_saved.emit(complete)
+        self.shadow_bleed_acknowledged.emit(acknowledged)
+
+    def _fill_from_log(self, log: Dict[str, Any]) -> None:
+        """Populate every field the saved log has a value for (blank fields keep their current value)."""
+        if log.get("specimen_id"):
+            self.specimen_id.setText(str(log["specimen_id"]))
+        self.operator_notes.setText(str(log.get("operator_notes") or ""))
+        for record in log.get("torches") or []:
+            card = self.torch_cards.get(record.get("torch_id"))
+            if card is not None:
+                card.load_record(record)
+        camera = log.get("camera_settings") or {}
+        if camera.get("aperture") is not None:
+            self.aperture.setValue(float(camera["aperture"]))
+        if camera.get("shutter_speed") not in (None, ""):
+            self.shutter_speed.setText(str(camera["shutter_speed"]))
+        if camera.get("iso") is not None:
+            self.iso.setValue(int(camera["iso"]))
+        if camera.get("white_balance") not in (None, ""):
+            self.white_balance.setText(str(camera["white_balance"]))
+        self.ball_bearing_used.setChecked(bool(log.get("ball_bearing_used")))
 
     def _missing_fields(self) -> list[str]:
         missing = [tid for tid, card in self.torch_cards.items() if not card.is_complete()]
         if not self.session_id.text().strip():
             missing.append("session")
-        if not self.specimen_id.text().strip():
-            missing.append("specimen")
-        if self.aperture.value() <= 0:
-            missing.append("aperture")
-        if not self.shutter_speed.text().strip():
-            missing.append("shutter speed")
-        if self.iso.value() <= 0:
-            missing.append("ISO")
-        if not self.white_balance.text().strip():
-            missing.append("white balance")
+        # Specimen id, camera settings, notes and the ball-bearing flag are
+        # optional: no calculation uses them (they are labels and a record only).
         return missing
 
     def build_log(self) -> Dict[str, Any]:
@@ -198,11 +262,12 @@ class SessionLogTab(QWidget):
             "session_id": self.session_id.text().strip(),
             "specimen_id": self.specimen_id.text().strip(),
             "torches": [card.to_record() for card in self.torch_cards.values()],
+            # Unset optional fields are stored as null, not 0 or "".
             "camera_settings": {
-                "aperture": self.aperture.value(),
-                "shutter_speed": self.shutter_speed.text().strip(),
-                "iso": self.iso.value(),
-                "white_balance": self.white_balance.text().strip(),
+                "aperture": self.aperture.value() or None,
+                "shutter_speed": self.shutter_speed.text().strip() or None,
+                "iso": self.iso.value() or None,
+                "white_balance": self.white_balance.text().strip() or None,
             },
             "ball_bearing_used": self.ball_bearing_used.isChecked(),
             "capture_timestamp": datetime.now(timezone.utc).isoformat(),
@@ -219,11 +284,15 @@ class SessionLogTab(QWidget):
         session_id = self.session_id.text().strip()
         response = self.client.call("save_session_log", session_id, self.build_log())
         ok = response.get("success") is not False and bool(response.get("result"))
-        self.message.setText("Session log saved." if ok else response.get("error", "Unable to save session log."))
+        if ok:
+            # The form now matches what is on disk; do not reload over later edits.
+            self._loaded_session_id = session_id
         self.log_saved.emit(ok)
         if ok and self.shadow_bleed.isChecked():
             # Re-record the acknowledgement so it travels with the saved log.
             self.acknowledge_shadow_bleed(True)
+        # Set last so the save result is what the user sees.
+        self.message.setText("Session log saved." if ok else response.get("error", "Unable to save session log."))
 
     def acknowledge_shadow_bleed(self, checked: bool) -> None:
         """Feature 3: record the operator acknowledgement through the backend API."""

@@ -1,13 +1,4669 @@
 {
   "session_id": "1",
-  "status": "not_started",
-  "stages": [],
-  "images": [],
-  "holes_total": 0,
-  "holes_processed": 0,
+  "status": "complete",
+  "stages": [
+    {
+      "step_id": 1,
+      "phase": 0,
+      "stage_name": "raw_capture_ingestion",
+      "output_path": "raw/",
+      "timestamp": "2026-10-26T19:22:12.032906+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 2,
+      "phase": 1,
+      "stage_name": "lens_and_unit_calibration",
+      "output_path": "stages/calibration.json",
+      "timestamp": "2026-10-26T19:22:13.020898+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 3,
+      "phase": 1,
+      "stage_name": "illumination_geometry",
+      "output_path": "stages/illumination_geometry.json",
+      "timestamp": "2026-10-26T19:22:13.065378+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 4,
+      "phase": 1,
+      "stage_name": "brightness_matching",
+      "output_path": "stages/brightness_correction.json",
+      "timestamp": "2026-10-26T19:22:14.066042+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 5,
+      "phase": 1,
+      "stage_name": "cross_pass_registration",
+      "output_path": "stages/registered/",
+      "timestamp": "2026-10-26T19:22:43.927529+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 6,
+      "phase": 2,
+      "stage_name": "stamp_boundary_orientation",
+      "output_path": "stages/stamp_frame.json",
+      "timestamp": "2026-10-26T19:22:49.184425+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 7,
+      "phase": 2,
+      "stage_name": "perforation_candidate_detection",
+      "output_path": "stages/holes.json",
+      "timestamp": "2026-10-26T19:22:52.534104+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 8,
+      "phase": 2,
+      "stage_name": "hole_tooth_classification",
+      "output_path": "stages/holes.json",
+      "timestamp": "2026-10-26T19:22:52.871849+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 9,
+      "phase": 2,
+      "stage_name": "roi_extraction",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:22:54.650915+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 10,
+      "phase": 2,
+      "stage_name": "focus_stack_fusion",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:22:59.815471+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 11,
+      "phase": 3,
+      "stage_name": "subpixel_contour",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:00.664717+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 12,
+      "phase": 3,
+      "stage_name": "centroid_radius_profile",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:01.475535+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 13,
+      "phase": 3,
+      "stage_name": "shape_deviation_descriptor",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:01.547155+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 14,
+      "phase": 3,
+      "stage_name": "boundary_texture_sampling",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:04.171583+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 15,
+      "phase": 3,
+      "stage_name": "roughness_descriptor",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:05.221815+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 16,
+      "phase": 3,
+      "stage_name": "angular_brightness_sampling",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:06.471165+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 17,
+      "phase": 3,
+      "stage_name": "directional_profile_fitting",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:06.661841+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 18,
+      "phase": 3,
+      "stage_name": "composite_signature_assembly",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:07.745608+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 19,
+      "phase": 4,
+      "stage_name": "reference_group_construction",
+      "output_path": "manifest.json",
+      "timestamp": "2026-10-26T19:23:07.778423+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 20,
+      "phase": 4,
+      "stage_name": "robust_stats_deviation_score",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:07.917436+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 21,
+      "phase": 4,
+      "stage_name": "outlier_thresholding",
+      "output_path": "holes/",
+      "timestamp": "2026-10-26T19:23:10.589393+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 22,
+      "phase": 4,
+      "stage_name": "spatial_clustering",
+      "output_path": "stages/candidate_regions.json",
+      "timestamp": "2026-10-26T19:23:10.767419+00:00",
+      "status": "complete"
+    },
+    {
+      "step_id": 23,
+      "phase": 4,
+      "stage_name": "final_output_generation",
+      "output_path": "results/",
+      "timestamp": "2026-10-26T19:23:11.761107+00:00",
+      "status": "complete"
+    }
+  ],
+  "images": [
+    {
+      "token": 9,
+      "path": "stages/registered/diffuse_registered.png",
+      "stage": "registration",
+      "hole_id": null,
+      "edge": null,
+      "flagged": null,
+      "timestamp": "2026-10-26T19:22:14.781874+00:00",
+      "thumb": "stages/thumbs/stages_registered_diffuse_registered.png"
+    },
+    {
+      "token": 10,
+      "path": "stages/registered/torch_1_registered.png",
+      "stage": "registration",
+      "hole_id": null,
+      "edge": null,
+      "flagged": null,
+      "timestamp": "2026-10-26T19:22:19.889755+00:00",
+      "thumb": "stages/thumbs/stages_registered_torch_1_registered.png"
+    },
+    {
+      "token": 11,
+      "path": "stages/registered/torch_2_registered.png",
+      "stage": "registration",
+      "hole_id": null,
+      "edge": null,
+      "flagged": null,
+      "timestamp": "2026-10-26T19:22:23.709425+00:00",
+      "thumb": "stages/thumbs/stages_registered_torch_2_registered.png"
+    },
+    {
+      "token": 12,
+      "path": "stages/registered/torch_3_registered.png",
+      "stage": "registration",
+      "hole_id": null,
+      "edge": null,
+      "flagged": null,
+      "timestamp": "2026-10-26T19:22:29.863587+00:00",
+      "thumb": "stages/thumbs/stages_registered_torch_3_registered.png"
+    },
+    {
+      "token": 13,
+      "path": "stages/registered/torch_4_registered.png",
+      "stage": "registration",
+      "hole_id": null,
+      "edge": null,
+      "flagged": null,
+      "timestamp": "2026-10-26T19:22:36.643305+00:00",
+      "thumb": "stages/thumbs/stages_registered_torch_4_registered.png"
+    },
+    {
+      "token": 14,
+      "path": "stages/registered/backlit_registered.png",
+      "stage": "registration",
+      "hole_id": null,
+      "edge": null,
+      "flagged": null,
+      "timestamp": "2026-10-26T19:22:43.916523+00:00",
+      "thumb": "stages/thumbs/stages_registered_backlit_registered.png"
+    },
+    {
+      "token": 17,
+      "path": "stages/stamp_boundary.png",
+      "stage": "stamp_boundary",
+      "hole_id": null,
+      "edge": null,
+      "flagged": null,
+      "timestamp": "2026-10-26T19:22:49.168669+00:00",
+      "thumb": "stages/thumbs/stages_stamp_boundary.png"
+    },
+    {
+      "token": 23,
+      "path": "holes/top_01/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_01",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_01_crops_diffuse.png"
+    },
+    {
+      "token": 24,
+      "path": "holes/top_01/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_01",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_01_crops_torch_1.png"
+    },
+    {
+      "token": 25,
+      "path": "holes/top_01/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_01",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_01_crops_torch_2.png"
+    },
+    {
+      "token": 26,
+      "path": "holes/top_01/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_01",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_01_crops_torch_3.png"
+    },
+    {
+      "token": 27,
+      "path": "holes/top_01/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_01",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_01_crops_torch_4.png"
+    },
+    {
+      "token": 28,
+      "path": "holes/top_01/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_01",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_01_crops_backlit.png"
+    },
+    {
+      "token": 29,
+      "path": "holes/top_02/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_02",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_02_crops_diffuse.png"
+    },
+    {
+      "token": 30,
+      "path": "holes/top_02/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_02",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_02_crops_torch_1.png"
+    },
+    {
+      "token": 31,
+      "path": "holes/top_02/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_02",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_02_crops_torch_2.png"
+    },
+    {
+      "token": 32,
+      "path": "holes/top_02/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_02",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_02_crops_torch_3.png"
+    },
+    {
+      "token": 33,
+      "path": "holes/top_02/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_02",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_02_crops_torch_4.png"
+    },
+    {
+      "token": 34,
+      "path": "holes/top_02/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_02",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_02_crops_backlit.png"
+    },
+    {
+      "token": 35,
+      "path": "holes/top_03/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_03",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_03_crops_diffuse.png"
+    },
+    {
+      "token": 36,
+      "path": "holes/top_03/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_03",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_03_crops_torch_1.png"
+    },
+    {
+      "token": 37,
+      "path": "holes/top_03/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_03",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_03_crops_torch_2.png"
+    },
+    {
+      "token": 38,
+      "path": "holes/top_03/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_03",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_03_crops_torch_3.png"
+    },
+    {
+      "token": 39,
+      "path": "holes/top_03/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_03",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_03_crops_torch_4.png"
+    },
+    {
+      "token": 40,
+      "path": "holes/top_03/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_03",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_03_crops_backlit.png"
+    },
+    {
+      "token": 41,
+      "path": "holes/top_04/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_04",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_04_crops_diffuse.png"
+    },
+    {
+      "token": 42,
+      "path": "holes/top_04/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_04",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_04_crops_torch_1.png"
+    },
+    {
+      "token": 43,
+      "path": "holes/top_04/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_04",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_04_crops_torch_2.png"
+    },
+    {
+      "token": 44,
+      "path": "holes/top_04/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_04",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_04_crops_torch_3.png"
+    },
+    {
+      "token": 45,
+      "path": "holes/top_04/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_04",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_04_crops_torch_4.png"
+    },
+    {
+      "token": 46,
+      "path": "holes/top_04/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_04",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_04_crops_backlit.png"
+    },
+    {
+      "token": 47,
+      "path": "holes/top_05/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_05",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_05_crops_diffuse.png"
+    },
+    {
+      "token": 48,
+      "path": "holes/top_05/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_05",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_05_crops_torch_1.png"
+    },
+    {
+      "token": 49,
+      "path": "holes/top_05/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_05",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_05_crops_torch_2.png"
+    },
+    {
+      "token": 50,
+      "path": "holes/top_05/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_05",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_05_crops_torch_3.png"
+    },
+    {
+      "token": 51,
+      "path": "holes/top_05/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_05",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_05_crops_torch_4.png"
+    },
+    {
+      "token": 52,
+      "path": "holes/top_05/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_05",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_05_crops_backlit.png"
+    },
+    {
+      "token": 53,
+      "path": "holes/top_06/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_06",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_06_crops_diffuse.png"
+    },
+    {
+      "token": 54,
+      "path": "holes/top_06/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_06",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_06_crops_torch_1.png"
+    },
+    {
+      "token": 55,
+      "path": "holes/top_06/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_06",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_06_crops_torch_2.png"
+    },
+    {
+      "token": 56,
+      "path": "holes/top_06/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_06",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_06_crops_torch_3.png"
+    },
+    {
+      "token": 57,
+      "path": "holes/top_06/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_06",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_06_crops_torch_4.png"
+    },
+    {
+      "token": 58,
+      "path": "holes/top_06/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_06",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_06_crops_backlit.png"
+    },
+    {
+      "token": 59,
+      "path": "holes/top_07/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_07",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_07_crops_diffuse.png"
+    },
+    {
+      "token": 60,
+      "path": "holes/top_07/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_07",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_07_crops_torch_1.png"
+    },
+    {
+      "token": 61,
+      "path": "holes/top_07/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_07",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_07_crops_torch_2.png"
+    },
+    {
+      "token": 62,
+      "path": "holes/top_07/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_07",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_07_crops_torch_3.png"
+    },
+    {
+      "token": 63,
+      "path": "holes/top_07/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_07",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_07_crops_torch_4.png"
+    },
+    {
+      "token": 64,
+      "path": "holes/top_07/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_07",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_07_crops_backlit.png"
+    },
+    {
+      "token": 65,
+      "path": "holes/top_08/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_08",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_08_crops_diffuse.png"
+    },
+    {
+      "token": 66,
+      "path": "holes/top_08/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_08",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_08_crops_torch_1.png"
+    },
+    {
+      "token": 67,
+      "path": "holes/top_08/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_08",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_08_crops_torch_2.png"
+    },
+    {
+      "token": 68,
+      "path": "holes/top_08/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_08",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_08_crops_torch_3.png"
+    },
+    {
+      "token": 69,
+      "path": "holes/top_08/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_08",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_08_crops_torch_4.png"
+    },
+    {
+      "token": 70,
+      "path": "holes/top_08/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_08",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_08_crops_backlit.png"
+    },
+    {
+      "token": 71,
+      "path": "holes/top_09/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_09",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_09_crops_diffuse.png"
+    },
+    {
+      "token": 72,
+      "path": "holes/top_09/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_09",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_09_crops_torch_1.png"
+    },
+    {
+      "token": 73,
+      "path": "holes/top_09/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_09",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_09_crops_torch_2.png"
+    },
+    {
+      "token": 74,
+      "path": "holes/top_09/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_09",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_09_crops_torch_3.png"
+    },
+    {
+      "token": 75,
+      "path": "holes/top_09/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_09",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_09_crops_torch_4.png"
+    },
+    {
+      "token": 76,
+      "path": "holes/top_09/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_09",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_09_crops_backlit.png"
+    },
+    {
+      "token": 77,
+      "path": "holes/top_10/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_10",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_10_crops_diffuse.png"
+    },
+    {
+      "token": 78,
+      "path": "holes/top_10/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_10",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_10_crops_torch_1.png"
+    },
+    {
+      "token": 79,
+      "path": "holes/top_10/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_10",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_10_crops_torch_2.png"
+    },
+    {
+      "token": 80,
+      "path": "holes/top_10/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_10",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_10_crops_torch_3.png"
+    },
+    {
+      "token": 81,
+      "path": "holes/top_10/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_10",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_10_crops_torch_4.png"
+    },
+    {
+      "token": 82,
+      "path": "holes/top_10/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_10",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_10_crops_backlit.png"
+    },
+    {
+      "token": 83,
+      "path": "holes/top_11/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_11",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_11_crops_diffuse.png"
+    },
+    {
+      "token": 84,
+      "path": "holes/top_11/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_11",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_11_crops_torch_1.png"
+    },
+    {
+      "token": 85,
+      "path": "holes/top_11/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_11",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_11_crops_torch_2.png"
+    },
+    {
+      "token": 86,
+      "path": "holes/top_11/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_11",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_11_crops_torch_3.png"
+    },
+    {
+      "token": 87,
+      "path": "holes/top_11/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_11",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_11_crops_torch_4.png"
+    },
+    {
+      "token": 88,
+      "path": "holes/top_11/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_11",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_11_crops_backlit.png"
+    },
+    {
+      "token": 89,
+      "path": "holes/top_12/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_12",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_12_crops_diffuse.png"
+    },
+    {
+      "token": 90,
+      "path": "holes/top_12/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_12",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_12_crops_torch_1.png"
+    },
+    {
+      "token": 91,
+      "path": "holes/top_12/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_12",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_12_crops_torch_2.png"
+    },
+    {
+      "token": 92,
+      "path": "holes/top_12/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_12",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_12_crops_torch_3.png"
+    },
+    {
+      "token": 93,
+      "path": "holes/top_12/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_12",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_12_crops_torch_4.png"
+    },
+    {
+      "token": 94,
+      "path": "holes/top_12/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_12",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_12_crops_backlit.png"
+    },
+    {
+      "token": 95,
+      "path": "holes/top_13/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_13",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_13_crops_diffuse.png"
+    },
+    {
+      "token": 96,
+      "path": "holes/top_13/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_13",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_13_crops_torch_1.png"
+    },
+    {
+      "token": 97,
+      "path": "holes/top_13/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_13",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_13_crops_torch_2.png"
+    },
+    {
+      "token": 98,
+      "path": "holes/top_13/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_13",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_13_crops_torch_3.png"
+    },
+    {
+      "token": 99,
+      "path": "holes/top_13/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_13",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_13_crops_torch_4.png"
+    },
+    {
+      "token": 100,
+      "path": "holes/top_13/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_13",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_13_crops_backlit.png"
+    },
+    {
+      "token": 101,
+      "path": "holes/top_14/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "top_14",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_14_crops_diffuse.png"
+    },
+    {
+      "token": 102,
+      "path": "holes/top_14/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "top_14",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_14_crops_torch_1.png"
+    },
+    {
+      "token": 103,
+      "path": "holes/top_14/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "top_14",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_14_crops_torch_2.png"
+    },
+    {
+      "token": 104,
+      "path": "holes/top_14/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "top_14",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_14_crops_torch_3.png"
+    },
+    {
+      "token": 105,
+      "path": "holes/top_14/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "top_14",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_14_crops_torch_4.png"
+    },
+    {
+      "token": 106,
+      "path": "holes/top_14/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "top_14",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_top_14_crops_backlit.png"
+    },
+    {
+      "token": 107,
+      "path": "holes/bottom_01/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_01",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_01_crops_diffuse.png"
+    },
+    {
+      "token": 108,
+      "path": "holes/bottom_01/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_01",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_01_crops_torch_1.png"
+    },
+    {
+      "token": 109,
+      "path": "holes/bottom_01/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_01",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_01_crops_torch_2.png"
+    },
+    {
+      "token": 110,
+      "path": "holes/bottom_01/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_01",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_01_crops_torch_3.png"
+    },
+    {
+      "token": 111,
+      "path": "holes/bottom_01/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_01",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_01_crops_torch_4.png"
+    },
+    {
+      "token": 112,
+      "path": "holes/bottom_01/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_01",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_01_crops_backlit.png"
+    },
+    {
+      "token": 113,
+      "path": "holes/bottom_02/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_02",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_02_crops_diffuse.png"
+    },
+    {
+      "token": 114,
+      "path": "holes/bottom_02/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_02",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_02_crops_torch_1.png"
+    },
+    {
+      "token": 115,
+      "path": "holes/bottom_02/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_02",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_02_crops_torch_2.png"
+    },
+    {
+      "token": 116,
+      "path": "holes/bottom_02/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_02",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_02_crops_torch_3.png"
+    },
+    {
+      "token": 117,
+      "path": "holes/bottom_02/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_02",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_02_crops_torch_4.png"
+    },
+    {
+      "token": 118,
+      "path": "holes/bottom_02/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_02",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_02_crops_backlit.png"
+    },
+    {
+      "token": 119,
+      "path": "holes/bottom_03/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_03",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_03_crops_diffuse.png"
+    },
+    {
+      "token": 120,
+      "path": "holes/bottom_03/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_03",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_03_crops_torch_1.png"
+    },
+    {
+      "token": 121,
+      "path": "holes/bottom_03/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_03",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_03_crops_torch_2.png"
+    },
+    {
+      "token": 122,
+      "path": "holes/bottom_03/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_03",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_03_crops_torch_3.png"
+    },
+    {
+      "token": 123,
+      "path": "holes/bottom_03/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_03",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_03_crops_torch_4.png"
+    },
+    {
+      "token": 124,
+      "path": "holes/bottom_03/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_03",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_03_crops_backlit.png"
+    },
+    {
+      "token": 125,
+      "path": "holes/bottom_04/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_04",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_04_crops_diffuse.png"
+    },
+    {
+      "token": 126,
+      "path": "holes/bottom_04/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_04",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_04_crops_torch_1.png"
+    },
+    {
+      "token": 127,
+      "path": "holes/bottom_04/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_04",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_04_crops_torch_2.png"
+    },
+    {
+      "token": 128,
+      "path": "holes/bottom_04/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_04",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_04_crops_torch_3.png"
+    },
+    {
+      "token": 129,
+      "path": "holes/bottom_04/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_04",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_04_crops_torch_4.png"
+    },
+    {
+      "token": 130,
+      "path": "holes/bottom_04/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_04",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_04_crops_backlit.png"
+    },
+    {
+      "token": 131,
+      "path": "holes/bottom_05/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_05",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_05_crops_diffuse.png"
+    },
+    {
+      "token": 132,
+      "path": "holes/bottom_05/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_05",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_05_crops_torch_1.png"
+    },
+    {
+      "token": 133,
+      "path": "holes/bottom_05/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_05",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_05_crops_torch_2.png"
+    },
+    {
+      "token": 134,
+      "path": "holes/bottom_05/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_05",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_05_crops_torch_3.png"
+    },
+    {
+      "token": 135,
+      "path": "holes/bottom_05/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_05",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_05_crops_torch_4.png"
+    },
+    {
+      "token": 136,
+      "path": "holes/bottom_05/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_05",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_05_crops_backlit.png"
+    },
+    {
+      "token": 137,
+      "path": "holes/bottom_06/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_06",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_06_crops_diffuse.png"
+    },
+    {
+      "token": 138,
+      "path": "holes/bottom_06/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_06",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_06_crops_torch_1.png"
+    },
+    {
+      "token": 139,
+      "path": "holes/bottom_06/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_06",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_06_crops_torch_2.png"
+    },
+    {
+      "token": 140,
+      "path": "holes/bottom_06/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_06",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_06_crops_torch_3.png"
+    },
+    {
+      "token": 141,
+      "path": "holes/bottom_06/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_06",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_06_crops_torch_4.png"
+    },
+    {
+      "token": 142,
+      "path": "holes/bottom_06/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_06",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_06_crops_backlit.png"
+    },
+    {
+      "token": 143,
+      "path": "holes/bottom_07/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_07",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_07_crops_diffuse.png"
+    },
+    {
+      "token": 144,
+      "path": "holes/bottom_07/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_07",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_07_crops_torch_1.png"
+    },
+    {
+      "token": 145,
+      "path": "holes/bottom_07/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_07",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_07_crops_torch_2.png"
+    },
+    {
+      "token": 146,
+      "path": "holes/bottom_07/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_07",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_07_crops_torch_3.png"
+    },
+    {
+      "token": 147,
+      "path": "holes/bottom_07/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_07",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_07_crops_torch_4.png"
+    },
+    {
+      "token": 148,
+      "path": "holes/bottom_07/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_07",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_07_crops_backlit.png"
+    },
+    {
+      "token": 149,
+      "path": "holes/bottom_08/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_08",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_08_crops_diffuse.png"
+    },
+    {
+      "token": 150,
+      "path": "holes/bottom_08/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_08",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_08_crops_torch_1.png"
+    },
+    {
+      "token": 151,
+      "path": "holes/bottom_08/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_08",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_08_crops_torch_2.png"
+    },
+    {
+      "token": 152,
+      "path": "holes/bottom_08/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_08",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_08_crops_torch_3.png"
+    },
+    {
+      "token": 153,
+      "path": "holes/bottom_08/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_08",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_08_crops_torch_4.png"
+    },
+    {
+      "token": 154,
+      "path": "holes/bottom_08/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_08",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_08_crops_backlit.png"
+    },
+    {
+      "token": 155,
+      "path": "holes/bottom_09/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_09",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_09_crops_diffuse.png"
+    },
+    {
+      "token": 156,
+      "path": "holes/bottom_09/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_09",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_09_crops_torch_1.png"
+    },
+    {
+      "token": 157,
+      "path": "holes/bottom_09/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_09",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_09_crops_torch_2.png"
+    },
+    {
+      "token": 158,
+      "path": "holes/bottom_09/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_09",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_09_crops_torch_3.png"
+    },
+    {
+      "token": 159,
+      "path": "holes/bottom_09/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_09",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_09_crops_torch_4.png"
+    },
+    {
+      "token": 160,
+      "path": "holes/bottom_09/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_09",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_09_crops_backlit.png"
+    },
+    {
+      "token": 161,
+      "path": "holes/bottom_10/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_10",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_10_crops_diffuse.png"
+    },
+    {
+      "token": 162,
+      "path": "holes/bottom_10/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_10",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_10_crops_torch_1.png"
+    },
+    {
+      "token": 163,
+      "path": "holes/bottom_10/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_10",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_10_crops_torch_2.png"
+    },
+    {
+      "token": 164,
+      "path": "holes/bottom_10/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_10",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_10_crops_torch_3.png"
+    },
+    {
+      "token": 165,
+      "path": "holes/bottom_10/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_10",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_10_crops_torch_4.png"
+    },
+    {
+      "token": 166,
+      "path": "holes/bottom_10/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_10",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_10_crops_backlit.png"
+    },
+    {
+      "token": 167,
+      "path": "holes/bottom_11/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_11",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_11_crops_diffuse.png"
+    },
+    {
+      "token": 168,
+      "path": "holes/bottom_11/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_11",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_11_crops_torch_1.png"
+    },
+    {
+      "token": 169,
+      "path": "holes/bottom_11/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_11",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_11_crops_torch_2.png"
+    },
+    {
+      "token": 170,
+      "path": "holes/bottom_11/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_11",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_11_crops_torch_3.png"
+    },
+    {
+      "token": 171,
+      "path": "holes/bottom_11/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_11",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_11_crops_torch_4.png"
+    },
+    {
+      "token": 172,
+      "path": "holes/bottom_11/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_11",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_11_crops_backlit.png"
+    },
+    {
+      "token": 173,
+      "path": "holes/bottom_12/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_12",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_12_crops_diffuse.png"
+    },
+    {
+      "token": 174,
+      "path": "holes/bottom_12/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_12",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_12_crops_torch_1.png"
+    },
+    {
+      "token": 175,
+      "path": "holes/bottom_12/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_12",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_12_crops_torch_2.png"
+    },
+    {
+      "token": 176,
+      "path": "holes/bottom_12/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_12",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_12_crops_torch_3.png"
+    },
+    {
+      "token": 177,
+      "path": "holes/bottom_12/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_12",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_12_crops_torch_4.png"
+    },
+    {
+      "token": 178,
+      "path": "holes/bottom_12/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_12",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_12_crops_backlit.png"
+    },
+    {
+      "token": 179,
+      "path": "holes/bottom_13/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_13",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_13_crops_diffuse.png"
+    },
+    {
+      "token": 180,
+      "path": "holes/bottom_13/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_13",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_13_crops_torch_1.png"
+    },
+    {
+      "token": 181,
+      "path": "holes/bottom_13/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_13",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_13_crops_torch_2.png"
+    },
+    {
+      "token": 182,
+      "path": "holes/bottom_13/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_13",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_13_crops_torch_3.png"
+    },
+    {
+      "token": 183,
+      "path": "holes/bottom_13/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_13",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_13_crops_torch_4.png"
+    },
+    {
+      "token": 184,
+      "path": "holes/bottom_13/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_13",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_13_crops_backlit.png"
+    },
+    {
+      "token": 185,
+      "path": "holes/bottom_14/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_14",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_14_crops_diffuse.png"
+    },
+    {
+      "token": 186,
+      "path": "holes/bottom_14/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_14",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_14_crops_torch_1.png"
+    },
+    {
+      "token": 187,
+      "path": "holes/bottom_14/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_14",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_14_crops_torch_2.png"
+    },
+    {
+      "token": 188,
+      "path": "holes/bottom_14/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_14",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_14_crops_torch_3.png"
+    },
+    {
+      "token": 189,
+      "path": "holes/bottom_14/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_14",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_14_crops_torch_4.png"
+    },
+    {
+      "token": 190,
+      "path": "holes/bottom_14/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "bottom_14",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_bottom_14_crops_backlit.png"
+    },
+    {
+      "token": 191,
+      "path": "holes/left_01/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_01",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_01_crops_diffuse.png"
+    },
+    {
+      "token": 192,
+      "path": "holes/left_01/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_01",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_01_crops_torch_1.png"
+    },
+    {
+      "token": 193,
+      "path": "holes/left_01/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_01",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_01_crops_torch_2.png"
+    },
+    {
+      "token": 194,
+      "path": "holes/left_01/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_01",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_01_crops_torch_3.png"
+    },
+    {
+      "token": 195,
+      "path": "holes/left_01/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_01",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_01_crops_torch_4.png"
+    },
+    {
+      "token": 196,
+      "path": "holes/left_01/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_01",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_01_crops_backlit.png"
+    },
+    {
+      "token": 197,
+      "path": "holes/left_02/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_02",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_02_crops_diffuse.png"
+    },
+    {
+      "token": 198,
+      "path": "holes/left_02/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_02",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_02_crops_torch_1.png"
+    },
+    {
+      "token": 199,
+      "path": "holes/left_02/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_02",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_02_crops_torch_2.png"
+    },
+    {
+      "token": 200,
+      "path": "holes/left_02/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_02",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_02_crops_torch_3.png"
+    },
+    {
+      "token": 201,
+      "path": "holes/left_02/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_02",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_02_crops_torch_4.png"
+    },
+    {
+      "token": 202,
+      "path": "holes/left_02/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_02",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_02_crops_backlit.png"
+    },
+    {
+      "token": 203,
+      "path": "holes/left_03/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_03",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_03_crops_diffuse.png"
+    },
+    {
+      "token": 204,
+      "path": "holes/left_03/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_03",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_03_crops_torch_1.png"
+    },
+    {
+      "token": 205,
+      "path": "holes/left_03/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_03",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_03_crops_torch_2.png"
+    },
+    {
+      "token": 206,
+      "path": "holes/left_03/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_03",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_03_crops_torch_3.png"
+    },
+    {
+      "token": 207,
+      "path": "holes/left_03/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_03",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_03_crops_torch_4.png"
+    },
+    {
+      "token": 208,
+      "path": "holes/left_03/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_03",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_03_crops_backlit.png"
+    },
+    {
+      "token": 209,
+      "path": "holes/left_04/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_04",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_04_crops_diffuse.png"
+    },
+    {
+      "token": 210,
+      "path": "holes/left_04/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_04",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_04_crops_torch_1.png"
+    },
+    {
+      "token": 211,
+      "path": "holes/left_04/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_04",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_04_crops_torch_2.png"
+    },
+    {
+      "token": 212,
+      "path": "holes/left_04/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_04",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_04_crops_torch_3.png"
+    },
+    {
+      "token": 213,
+      "path": "holes/left_04/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_04",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_04_crops_torch_4.png"
+    },
+    {
+      "token": 214,
+      "path": "holes/left_04/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_04",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_04_crops_backlit.png"
+    },
+    {
+      "token": 215,
+      "path": "holes/left_05/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_05",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_05_crops_diffuse.png"
+    },
+    {
+      "token": 216,
+      "path": "holes/left_05/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_05",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_05_crops_torch_1.png"
+    },
+    {
+      "token": 217,
+      "path": "holes/left_05/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_05",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_05_crops_torch_2.png"
+    },
+    {
+      "token": 218,
+      "path": "holes/left_05/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_05",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_05_crops_torch_3.png"
+    },
+    {
+      "token": 219,
+      "path": "holes/left_05/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_05",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_05_crops_torch_4.png"
+    },
+    {
+      "token": 220,
+      "path": "holes/left_05/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_05",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_05_crops_backlit.png"
+    },
+    {
+      "token": 221,
+      "path": "holes/left_06/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_06",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_06_crops_diffuse.png"
+    },
+    {
+      "token": 222,
+      "path": "holes/left_06/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_06",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_06_crops_torch_1.png"
+    },
+    {
+      "token": 223,
+      "path": "holes/left_06/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_06",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_06_crops_torch_2.png"
+    },
+    {
+      "token": 224,
+      "path": "holes/left_06/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_06",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_06_crops_torch_3.png"
+    },
+    {
+      "token": 225,
+      "path": "holes/left_06/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_06",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_06_crops_torch_4.png"
+    },
+    {
+      "token": 226,
+      "path": "holes/left_06/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_06",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_06_crops_backlit.png"
+    },
+    {
+      "token": 227,
+      "path": "holes/left_07/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_07",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_07_crops_diffuse.png"
+    },
+    {
+      "token": 228,
+      "path": "holes/left_07/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_07",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_07_crops_torch_1.png"
+    },
+    {
+      "token": 229,
+      "path": "holes/left_07/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_07",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_07_crops_torch_2.png"
+    },
+    {
+      "token": 230,
+      "path": "holes/left_07/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_07",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_07_crops_torch_3.png"
+    },
+    {
+      "token": 231,
+      "path": "holes/left_07/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_07",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_07_crops_torch_4.png"
+    },
+    {
+      "token": 232,
+      "path": "holes/left_07/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_07",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_07_crops_backlit.png"
+    },
+    {
+      "token": 233,
+      "path": "holes/left_08/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_08",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_08_crops_diffuse.png"
+    },
+    {
+      "token": 234,
+      "path": "holes/left_08/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_08",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_08_crops_torch_1.png"
+    },
+    {
+      "token": 235,
+      "path": "holes/left_08/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_08",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_08_crops_torch_2.png"
+    },
+    {
+      "token": 236,
+      "path": "holes/left_08/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_08",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_08_crops_torch_3.png"
+    },
+    {
+      "token": 237,
+      "path": "holes/left_08/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_08",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_08_crops_torch_4.png"
+    },
+    {
+      "token": 238,
+      "path": "holes/left_08/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_08",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_08_crops_backlit.png"
+    },
+    {
+      "token": 239,
+      "path": "holes/left_09/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_09",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_09_crops_diffuse.png"
+    },
+    {
+      "token": 240,
+      "path": "holes/left_09/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_09",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_09_crops_torch_1.png"
+    },
+    {
+      "token": 241,
+      "path": "holes/left_09/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_09",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_09_crops_torch_2.png"
+    },
+    {
+      "token": 242,
+      "path": "holes/left_09/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_09",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_09_crops_torch_3.png"
+    },
+    {
+      "token": 243,
+      "path": "holes/left_09/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_09",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_09_crops_torch_4.png"
+    },
+    {
+      "token": 244,
+      "path": "holes/left_09/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_09",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_09_crops_backlit.png"
+    },
+    {
+      "token": 245,
+      "path": "holes/left_10/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_10",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_10_crops_diffuse.png"
+    },
+    {
+      "token": 246,
+      "path": "holes/left_10/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_10",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_10_crops_torch_1.png"
+    },
+    {
+      "token": 247,
+      "path": "holes/left_10/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_10",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_10_crops_torch_2.png"
+    },
+    {
+      "token": 248,
+      "path": "holes/left_10/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_10",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_10_crops_torch_3.png"
+    },
+    {
+      "token": 249,
+      "path": "holes/left_10/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_10",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_10_crops_torch_4.png"
+    },
+    {
+      "token": 250,
+      "path": "holes/left_10/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_10",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_10_crops_backlit.png"
+    },
+    {
+      "token": 251,
+      "path": "holes/left_11/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_11",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_11_crops_diffuse.png"
+    },
+    {
+      "token": 252,
+      "path": "holes/left_11/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_11",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_11_crops_torch_1.png"
+    },
+    {
+      "token": 253,
+      "path": "holes/left_11/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_11",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_11_crops_torch_2.png"
+    },
+    {
+      "token": 254,
+      "path": "holes/left_11/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_11",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_11_crops_torch_3.png"
+    },
+    {
+      "token": 255,
+      "path": "holes/left_11/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_11",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_11_crops_torch_4.png"
+    },
+    {
+      "token": 256,
+      "path": "holes/left_11/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_11",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_11_crops_backlit.png"
+    },
+    {
+      "token": 257,
+      "path": "holes/left_12/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_12",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_12_crops_diffuse.png"
+    },
+    {
+      "token": 258,
+      "path": "holes/left_12/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_12",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_12_crops_torch_1.png"
+    },
+    {
+      "token": 259,
+      "path": "holes/left_12/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_12",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_12_crops_torch_2.png"
+    },
+    {
+      "token": 260,
+      "path": "holes/left_12/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_12",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_12_crops_torch_3.png"
+    },
+    {
+      "token": 261,
+      "path": "holes/left_12/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_12",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_12_crops_torch_4.png"
+    },
+    {
+      "token": 262,
+      "path": "holes/left_12/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_12",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_12_crops_backlit.png"
+    },
+    {
+      "token": 263,
+      "path": "holes/left_13/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_13",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_13_crops_diffuse.png"
+    },
+    {
+      "token": 264,
+      "path": "holes/left_13/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_13",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_13_crops_torch_1.png"
+    },
+    {
+      "token": 265,
+      "path": "holes/left_13/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_13",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_13_crops_torch_2.png"
+    },
+    {
+      "token": 266,
+      "path": "holes/left_13/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_13",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_13_crops_torch_3.png"
+    },
+    {
+      "token": 267,
+      "path": "holes/left_13/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_13",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_13_crops_torch_4.png"
+    },
+    {
+      "token": 268,
+      "path": "holes/left_13/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_13",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_13_crops_backlit.png"
+    },
+    {
+      "token": 269,
+      "path": "holes/left_14/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_14",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_14_crops_diffuse.png"
+    },
+    {
+      "token": 270,
+      "path": "holes/left_14/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_14",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_14_crops_torch_1.png"
+    },
+    {
+      "token": 271,
+      "path": "holes/left_14/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_14",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_14_crops_torch_2.png"
+    },
+    {
+      "token": 272,
+      "path": "holes/left_14/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_14",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_14_crops_torch_3.png"
+    },
+    {
+      "token": 273,
+      "path": "holes/left_14/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_14",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_14_crops_torch_4.png"
+    },
+    {
+      "token": 274,
+      "path": "holes/left_14/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_14",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_14_crops_backlit.png"
+    },
+    {
+      "token": 275,
+      "path": "holes/left_15/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_15",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_15_crops_diffuse.png"
+    },
+    {
+      "token": 276,
+      "path": "holes/left_15/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_15",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_15_crops_torch_1.png"
+    },
+    {
+      "token": 277,
+      "path": "holes/left_15/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_15",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_15_crops_torch_2.png"
+    },
+    {
+      "token": 278,
+      "path": "holes/left_15/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_15",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_15_crops_torch_3.png"
+    },
+    {
+      "token": 279,
+      "path": "holes/left_15/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_15",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_15_crops_torch_4.png"
+    },
+    {
+      "token": 280,
+      "path": "holes/left_15/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_15",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_15_crops_backlit.png"
+    },
+    {
+      "token": 281,
+      "path": "holes/left_16/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "left_16",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_16_crops_diffuse.png"
+    },
+    {
+      "token": 282,
+      "path": "holes/left_16/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "left_16",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_16_crops_torch_1.png"
+    },
+    {
+      "token": 283,
+      "path": "holes/left_16/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "left_16",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_16_crops_torch_2.png"
+    },
+    {
+      "token": 284,
+      "path": "holes/left_16/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "left_16",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_16_crops_torch_3.png"
+    },
+    {
+      "token": 285,
+      "path": "holes/left_16/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "left_16",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_16_crops_torch_4.png"
+    },
+    {
+      "token": 286,
+      "path": "holes/left_16/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "left_16",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_left_16_crops_backlit.png"
+    },
+    {
+      "token": 287,
+      "path": "holes/right_01/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_01",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_01_crops_diffuse.png"
+    },
+    {
+      "token": 288,
+      "path": "holes/right_01/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_01",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_01_crops_torch_1.png"
+    },
+    {
+      "token": 289,
+      "path": "holes/right_01/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_01",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_01_crops_torch_2.png"
+    },
+    {
+      "token": 290,
+      "path": "holes/right_01/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_01",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_01_crops_torch_3.png"
+    },
+    {
+      "token": 291,
+      "path": "holes/right_01/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_01",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_01_crops_torch_4.png"
+    },
+    {
+      "token": 292,
+      "path": "holes/right_01/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_01",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_01_crops_backlit.png"
+    },
+    {
+      "token": 293,
+      "path": "holes/right_02/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_02",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_02_crops_diffuse.png"
+    },
+    {
+      "token": 294,
+      "path": "holes/right_02/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_02",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_02_crops_torch_1.png"
+    },
+    {
+      "token": 295,
+      "path": "holes/right_02/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_02",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_02_crops_torch_2.png"
+    },
+    {
+      "token": 296,
+      "path": "holes/right_02/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_02",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_02_crops_torch_3.png"
+    },
+    {
+      "token": 297,
+      "path": "holes/right_02/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_02",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_02_crops_torch_4.png"
+    },
+    {
+      "token": 298,
+      "path": "holes/right_02/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_02",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_02_crops_backlit.png"
+    },
+    {
+      "token": 299,
+      "path": "holes/right_03/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_03",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_03_crops_diffuse.png"
+    },
+    {
+      "token": 300,
+      "path": "holes/right_03/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_03",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_03_crops_torch_1.png"
+    },
+    {
+      "token": 301,
+      "path": "holes/right_03/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_03",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_03_crops_torch_2.png"
+    },
+    {
+      "token": 302,
+      "path": "holes/right_03/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_03",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_03_crops_torch_3.png"
+    },
+    {
+      "token": 303,
+      "path": "holes/right_03/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_03",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_03_crops_torch_4.png"
+    },
+    {
+      "token": 304,
+      "path": "holes/right_03/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_03",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_03_crops_backlit.png"
+    },
+    {
+      "token": 305,
+      "path": "holes/right_04/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_04",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_04_crops_diffuse.png"
+    },
+    {
+      "token": 306,
+      "path": "holes/right_04/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_04",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_04_crops_torch_1.png"
+    },
+    {
+      "token": 307,
+      "path": "holes/right_04/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_04",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_04_crops_torch_2.png"
+    },
+    {
+      "token": 308,
+      "path": "holes/right_04/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_04",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_04_crops_torch_3.png"
+    },
+    {
+      "token": 309,
+      "path": "holes/right_04/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_04",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_04_crops_torch_4.png"
+    },
+    {
+      "token": 310,
+      "path": "holes/right_04/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_04",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_04_crops_backlit.png"
+    },
+    {
+      "token": 311,
+      "path": "holes/right_05/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_05",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_05_crops_diffuse.png"
+    },
+    {
+      "token": 312,
+      "path": "holes/right_05/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_05",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_05_crops_torch_1.png"
+    },
+    {
+      "token": 313,
+      "path": "holes/right_05/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_05",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_05_crops_torch_2.png"
+    },
+    {
+      "token": 314,
+      "path": "holes/right_05/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_05",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_05_crops_torch_3.png"
+    },
+    {
+      "token": 315,
+      "path": "holes/right_05/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_05",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_05_crops_torch_4.png"
+    },
+    {
+      "token": 316,
+      "path": "holes/right_05/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_05",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_05_crops_backlit.png"
+    },
+    {
+      "token": 317,
+      "path": "holes/right_06/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_06",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_06_crops_diffuse.png"
+    },
+    {
+      "token": 318,
+      "path": "holes/right_06/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_06",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_06_crops_torch_1.png"
+    },
+    {
+      "token": 319,
+      "path": "holes/right_06/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_06",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_06_crops_torch_2.png"
+    },
+    {
+      "token": 320,
+      "path": "holes/right_06/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_06",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_06_crops_torch_3.png"
+    },
+    {
+      "token": 321,
+      "path": "holes/right_06/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_06",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_06_crops_torch_4.png"
+    },
+    {
+      "token": 322,
+      "path": "holes/right_06/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_06",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_06_crops_backlit.png"
+    },
+    {
+      "token": 323,
+      "path": "holes/right_07/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_07",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_07_crops_diffuse.png"
+    },
+    {
+      "token": 324,
+      "path": "holes/right_07/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_07",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_07_crops_torch_1.png"
+    },
+    {
+      "token": 325,
+      "path": "holes/right_07/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_07",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_07_crops_torch_2.png"
+    },
+    {
+      "token": 326,
+      "path": "holes/right_07/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_07",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_07_crops_torch_3.png"
+    },
+    {
+      "token": 327,
+      "path": "holes/right_07/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_07",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_07_crops_torch_4.png"
+    },
+    {
+      "token": 328,
+      "path": "holes/right_07/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_07",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_07_crops_backlit.png"
+    },
+    {
+      "token": 329,
+      "path": "holes/right_08/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_08",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_08_crops_diffuse.png"
+    },
+    {
+      "token": 330,
+      "path": "holes/right_08/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_08",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_08_crops_torch_1.png"
+    },
+    {
+      "token": 331,
+      "path": "holes/right_08/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_08",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_08_crops_torch_2.png"
+    },
+    {
+      "token": 332,
+      "path": "holes/right_08/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_08",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_08_crops_torch_3.png"
+    },
+    {
+      "token": 333,
+      "path": "holes/right_08/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_08",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_08_crops_torch_4.png"
+    },
+    {
+      "token": 334,
+      "path": "holes/right_08/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_08",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_08_crops_backlit.png"
+    },
+    {
+      "token": 335,
+      "path": "holes/right_09/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_09",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_09_crops_diffuse.png"
+    },
+    {
+      "token": 336,
+      "path": "holes/right_09/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_09",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_09_crops_torch_1.png"
+    },
+    {
+      "token": 337,
+      "path": "holes/right_09/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_09",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_09_crops_torch_2.png"
+    },
+    {
+      "token": 338,
+      "path": "holes/right_09/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_09",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_09_crops_torch_3.png"
+    },
+    {
+      "token": 339,
+      "path": "holes/right_09/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_09",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_09_crops_torch_4.png"
+    },
+    {
+      "token": 340,
+      "path": "holes/right_09/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_09",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_09_crops_backlit.png"
+    },
+    {
+      "token": 341,
+      "path": "holes/right_10/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_10",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_10_crops_diffuse.png"
+    },
+    {
+      "token": 342,
+      "path": "holes/right_10/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_10",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_10_crops_torch_1.png"
+    },
+    {
+      "token": 343,
+      "path": "holes/right_10/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_10",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_10_crops_torch_2.png"
+    },
+    {
+      "token": 344,
+      "path": "holes/right_10/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_10",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_10_crops_torch_3.png"
+    },
+    {
+      "token": 345,
+      "path": "holes/right_10/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_10",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_10_crops_torch_4.png"
+    },
+    {
+      "token": 346,
+      "path": "holes/right_10/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_10",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_10_crops_backlit.png"
+    },
+    {
+      "token": 347,
+      "path": "holes/right_11/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_11",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_11_crops_diffuse.png"
+    },
+    {
+      "token": 348,
+      "path": "holes/right_11/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_11",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_11_crops_torch_1.png"
+    },
+    {
+      "token": 349,
+      "path": "holes/right_11/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_11",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_11_crops_torch_2.png"
+    },
+    {
+      "token": 350,
+      "path": "holes/right_11/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_11",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_11_crops_torch_3.png"
+    },
+    {
+      "token": 351,
+      "path": "holes/right_11/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_11",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_11_crops_torch_4.png"
+    },
+    {
+      "token": 352,
+      "path": "holes/right_11/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_11",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_11_crops_backlit.png"
+    },
+    {
+      "token": 353,
+      "path": "holes/right_12/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_12",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_12_crops_diffuse.png"
+    },
+    {
+      "token": 354,
+      "path": "holes/right_12/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_12",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_12_crops_torch_1.png"
+    },
+    {
+      "token": 355,
+      "path": "holes/right_12/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_12",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_12_crops_torch_2.png"
+    },
+    {
+      "token": 356,
+      "path": "holes/right_12/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_12",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_12_crops_torch_3.png"
+    },
+    {
+      "token": 357,
+      "path": "holes/right_12/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_12",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_12_crops_torch_4.png"
+    },
+    {
+      "token": 358,
+      "path": "holes/right_12/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_12",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_12_crops_backlit.png"
+    },
+    {
+      "token": 359,
+      "path": "holes/right_13/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_13",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_13_crops_diffuse.png"
+    },
+    {
+      "token": 360,
+      "path": "holes/right_13/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_13",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_13_crops_torch_1.png"
+    },
+    {
+      "token": 361,
+      "path": "holes/right_13/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_13",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_13_crops_torch_2.png"
+    },
+    {
+      "token": 362,
+      "path": "holes/right_13/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_13",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_13_crops_torch_3.png"
+    },
+    {
+      "token": 363,
+      "path": "holes/right_13/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_13",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_13_crops_torch_4.png"
+    },
+    {
+      "token": 364,
+      "path": "holes/right_13/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_13",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_13_crops_backlit.png"
+    },
+    {
+      "token": 365,
+      "path": "holes/right_14/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_14",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_14_crops_diffuse.png"
+    },
+    {
+      "token": 366,
+      "path": "holes/right_14/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_14",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_14_crops_torch_1.png"
+    },
+    {
+      "token": 367,
+      "path": "holes/right_14/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_14",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_14_crops_torch_2.png"
+    },
+    {
+      "token": 368,
+      "path": "holes/right_14/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_14",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_14_crops_torch_3.png"
+    },
+    {
+      "token": 369,
+      "path": "holes/right_14/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_14",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_14_crops_torch_4.png"
+    },
+    {
+      "token": 370,
+      "path": "holes/right_14/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_14",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_14_crops_backlit.png"
+    },
+    {
+      "token": 371,
+      "path": "holes/right_15/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_15",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_15_crops_diffuse.png"
+    },
+    {
+      "token": 372,
+      "path": "holes/right_15/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_15",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_15_crops_torch_1.png"
+    },
+    {
+      "token": 373,
+      "path": "holes/right_15/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_15",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_15_crops_torch_2.png"
+    },
+    {
+      "token": 374,
+      "path": "holes/right_15/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_15",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_15_crops_torch_3.png"
+    },
+    {
+      "token": 375,
+      "path": "holes/right_15/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_15",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_15_crops_torch_4.png"
+    },
+    {
+      "token": 376,
+      "path": "holes/right_15/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_15",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_15_crops_backlit.png"
+    },
+    {
+      "token": 377,
+      "path": "holes/right_16/crops/diffuse.png",
+      "stage": "roi_crop",
+      "hole_id": "right_16",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_16_crops_diffuse.png"
+    },
+    {
+      "token": 378,
+      "path": "holes/right_16/crops/torch_1.png",
+      "stage": "roi_crop",
+      "hole_id": "right_16",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_16_crops_torch_1.png"
+    },
+    {
+      "token": 379,
+      "path": "holes/right_16/crops/torch_2.png",
+      "stage": "roi_crop",
+      "hole_id": "right_16",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_16_crops_torch_2.png"
+    },
+    {
+      "token": 380,
+      "path": "holes/right_16/crops/torch_3.png",
+      "stage": "roi_crop",
+      "hole_id": "right_16",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_16_crops_torch_3.png"
+    },
+    {
+      "token": 381,
+      "path": "holes/right_16/crops/torch_4.png",
+      "stage": "roi_crop",
+      "hole_id": "right_16",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_16_crops_torch_4.png"
+    },
+    {
+      "token": 382,
+      "path": "holes/right_16/crops/backlit.png",
+      "stage": "roi_crop",
+      "hole_id": "right_16",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:22:54.635229+00:00",
+      "thumb": "stages/thumbs/holes_right_16_crops_backlit.png"
+    },
+    {
+      "token": 387,
+      "path": "holes/top_01/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_01",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_01_contour_overlay.png"
+    },
+    {
+      "token": 388,
+      "path": "holes/top_02/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_02",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_02_contour_overlay.png"
+    },
+    {
+      "token": 389,
+      "path": "holes/top_03/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_03",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_03_contour_overlay.png"
+    },
+    {
+      "token": 390,
+      "path": "holes/top_04/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_04",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_04_contour_overlay.png"
+    },
+    {
+      "token": 391,
+      "path": "holes/top_05/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_05",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_05_contour_overlay.png"
+    },
+    {
+      "token": 392,
+      "path": "holes/top_06/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_06",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_06_contour_overlay.png"
+    },
+    {
+      "token": 393,
+      "path": "holes/top_07/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_07",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_07_contour_overlay.png"
+    },
+    {
+      "token": 394,
+      "path": "holes/top_08/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_08",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_08_contour_overlay.png"
+    },
+    {
+      "token": 395,
+      "path": "holes/top_09/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_09",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_09_contour_overlay.png"
+    },
+    {
+      "token": 396,
+      "path": "holes/top_10/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_10",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_10_contour_overlay.png"
+    },
+    {
+      "token": 397,
+      "path": "holes/top_11/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_11",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_11_contour_overlay.png"
+    },
+    {
+      "token": 398,
+      "path": "holes/top_12/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_12",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_12_contour_overlay.png"
+    },
+    {
+      "token": 399,
+      "path": "holes/top_13/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_13",
+      "edge": "top",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_13_contour_overlay.png"
+    },
+    {
+      "token": 400,
+      "path": "holes/top_14/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "top_14",
+      "edge": "top",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_top_14_contour_overlay.png"
+    },
+    {
+      "token": 401,
+      "path": "holes/bottom_01/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_01",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_01_contour_overlay.png"
+    },
+    {
+      "token": 402,
+      "path": "holes/bottom_02/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_02",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_02_contour_overlay.png"
+    },
+    {
+      "token": 403,
+      "path": "holes/bottom_03/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_03",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_03_contour_overlay.png"
+    },
+    {
+      "token": 404,
+      "path": "holes/bottom_04/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_04",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_04_contour_overlay.png"
+    },
+    {
+      "token": 405,
+      "path": "holes/bottom_05/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_05",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_05_contour_overlay.png"
+    },
+    {
+      "token": 406,
+      "path": "holes/bottom_06/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_06",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_06_contour_overlay.png"
+    },
+    {
+      "token": 407,
+      "path": "holes/bottom_07/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_07",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_07_contour_overlay.png"
+    },
+    {
+      "token": 408,
+      "path": "holes/bottom_08/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_08",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_08_contour_overlay.png"
+    },
+    {
+      "token": 409,
+      "path": "holes/bottom_09/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_09",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_09_contour_overlay.png"
+    },
+    {
+      "token": 410,
+      "path": "holes/bottom_10/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_10",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_10_contour_overlay.png"
+    },
+    {
+      "token": 411,
+      "path": "holes/bottom_11/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_11",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_11_contour_overlay.png"
+    },
+    {
+      "token": 412,
+      "path": "holes/bottom_12/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_12",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_12_contour_overlay.png"
+    },
+    {
+      "token": 413,
+      "path": "holes/bottom_13/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_13",
+      "edge": "bottom",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_13_contour_overlay.png"
+    },
+    {
+      "token": 414,
+      "path": "holes/bottom_14/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "bottom_14",
+      "edge": "bottom",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_bottom_14_contour_overlay.png"
+    },
+    {
+      "token": 415,
+      "path": "holes/left_01/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_01",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_01_contour_overlay.png"
+    },
+    {
+      "token": 416,
+      "path": "holes/left_02/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_02",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_02_contour_overlay.png"
+    },
+    {
+      "token": 417,
+      "path": "holes/left_03/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_03",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_03_contour_overlay.png"
+    },
+    {
+      "token": 418,
+      "path": "holes/left_04/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_04",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_04_contour_overlay.png"
+    },
+    {
+      "token": 419,
+      "path": "holes/left_05/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_05",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_05_contour_overlay.png"
+    },
+    {
+      "token": 420,
+      "path": "holes/left_06/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_06",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_06_contour_overlay.png"
+    },
+    {
+      "token": 421,
+      "path": "holes/left_07/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_07",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_07_contour_overlay.png"
+    },
+    {
+      "token": 422,
+      "path": "holes/left_08/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_08",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_08_contour_overlay.png"
+    },
+    {
+      "token": 423,
+      "path": "holes/left_09/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_09",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_09_contour_overlay.png"
+    },
+    {
+      "token": 424,
+      "path": "holes/left_10/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_10",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_10_contour_overlay.png"
+    },
+    {
+      "token": 425,
+      "path": "holes/left_11/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_11",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_11_contour_overlay.png"
+    },
+    {
+      "token": 426,
+      "path": "holes/left_12/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_12",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_12_contour_overlay.png"
+    },
+    {
+      "token": 427,
+      "path": "holes/left_13/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_13",
+      "edge": "left",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_13_contour_overlay.png"
+    },
+    {
+      "token": 428,
+      "path": "holes/left_14/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_14",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_14_contour_overlay.png"
+    },
+    {
+      "token": 429,
+      "path": "holes/left_15/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_15",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_15_contour_overlay.png"
+    },
+    {
+      "token": 430,
+      "path": "holes/left_16/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "left_16",
+      "edge": "left",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_left_16_contour_overlay.png"
+    },
+    {
+      "token": 431,
+      "path": "holes/right_01/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_01",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_01_contour_overlay.png"
+    },
+    {
+      "token": 432,
+      "path": "holes/right_02/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_02",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_02_contour_overlay.png"
+    },
+    {
+      "token": 433,
+      "path": "holes/right_03/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_03",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_03_contour_overlay.png"
+    },
+    {
+      "token": 434,
+      "path": "holes/right_04/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_04",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_04_contour_overlay.png"
+    },
+    {
+      "token": 435,
+      "path": "holes/right_05/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_05",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_05_contour_overlay.png"
+    },
+    {
+      "token": 436,
+      "path": "holes/right_06/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_06",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_06_contour_overlay.png"
+    },
+    {
+      "token": 437,
+      "path": "holes/right_07/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_07",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_07_contour_overlay.png"
+    },
+    {
+      "token": 438,
+      "path": "holes/right_08/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_08",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_08_contour_overlay.png"
+    },
+    {
+      "token": 439,
+      "path": "holes/right_09/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_09",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_09_contour_overlay.png"
+    },
+    {
+      "token": 440,
+      "path": "holes/right_10/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_10",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_10_contour_overlay.png"
+    },
+    {
+      "token": 441,
+      "path": "holes/right_11/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_11",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_11_contour_overlay.png"
+    },
+    {
+      "token": 442,
+      "path": "holes/right_12/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_12",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_12_contour_overlay.png"
+    },
+    {
+      "token": 443,
+      "path": "holes/right_13/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_13",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_13_contour_overlay.png"
+    },
+    {
+      "token": 444,
+      "path": "holes/right_14/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_14",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_14_contour_overlay.png"
+    },
+    {
+      "token": 445,
+      "path": "holes/right_15/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_15",
+      "edge": "right",
+      "flagged": true,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_15_contour_overlay.png"
+    },
+    {
+      "token": 446,
+      "path": "holes/right_16/contour_overlay.png",
+      "stage": "subpixel_contour",
+      "hole_id": "right_16",
+      "edge": "right",
+      "flagged": false,
+      "timestamp": "2026-10-26T19:23:00.647717+00:00",
+      "thumb": "stages/thumbs/holes_right_16_contour_overlay.png"
+    },
+    {
+      "token": 523,
+      "path": "results/annotated_overview.png",
+      "stage": "final_output",
+      "hole_id": null,
+      "edge": null,
+      "flagged": null,
+      "timestamp": "2026-10-26T19:23:11.740787+00:00",
+      "thumb": "stages/thumbs/results_annotated_overview.png"
+    }
+  ],
+  "holes_total": 60,
+  "holes_processed": 60,
   "low_confidence_holes": [],
-  "version_metadata": {},
-  "mod_token": 0,
-  "created_at": "2026-10-25T10:25:07.315540+00:00",
-  "updated_at": "2026-10-25T10:25:07.315540+00:00"
+  "version_metadata": {
+    "app_version": "1.0.0",
+    "python_version": "3.11.9",
+    "config_snapshot": {
+      "COMPOSITE_FIELD_ORDER": [
+        "mean_radius_um",
+        "radius_std_um",
+        "fourier_c1",
+        "fourier_c2",
+        "fourier_c3",
+        "fourier_c4",
+        "roundness_ratio",
+        "sobel_mean",
+        "sobel_std",
+        "glcm_contrast",
+        "glcm_homogeneity",
+        "residual_wobble",
+        "shadow_strength",
+        "shadow_direction_deg"
+      ],
+      "CALIBRATION_PATTERN_SPACING_UM": 1000.0,
+      "CALIBRATION_PATTERN_SIZE": [
+        7,
+        7
+      ],
+      "CALIBRATION_DETECTION_GAMMA": 2.2,
+      "CALIBRATION_STRETCH_PERCENTILES": [
+        0.1,
+        99.9
+      ],
+      "CALIBRATION_SEARCH_SCALES": [
+        0.5,
+        0.25,
+        1.0
+      ],
+      "CALIBRATION_CHESSBOARD_MAX_DIM": 1500,
+      "CALIBRATION_MIN_FIELD_COVERAGE": 0.5,
+      "BALL_HOUGH_DP": 1.2,
+      "BALL_HOUGH_MIN_DIST_PX": 50,
+      "BALL_HOUGH_PARAM1": 50,
+      "BALL_HOUGH_PARAM2": 30,
+      "BALL_MIN_RADIUS_PX": 20,
+      "REGISTRATION_MAX_SHIFT_PX": 5.0,
+      "REGISTRATION_MIN_ECC_CORRELATION": 0.6,
+      "REGISTRATION_ECC_MAX_ITERS": 100,
+      "REGISTRATION_ECC_REFINE_ITERS": 20,
+      "REGISTRATION_ECC_EPS": 1e-05,
+      "REGISTRATION_ECC_MAX_DIM": 1500,
+      "REGISTRATION_ORB_MAX_FEATURES": 1000,
+      "STAMP_ROTATION_WARN_DEG": 5.0,
+      "STAMP_THRESHOLD_BLUR_PX": 5,
+      "HOLE_THRESHOLD_BLUR_PX": 3,
+      "HOLE_MIN_CIRCULARITY": 0.6,
+      "NOTCH_CLOSING_DIAMETER_UM": 1800.0,
+      "NOTCH_CLOSING_DOWNSCALE": 4,
+      "REGISTRATION_RANSAC_REPROJ_PX": 5.0,
+      "OUTPUT_MARKER_RADIUS_FRACTION": 0.005,
+      "HOLE_MIN_DIAMETER_MM": 0.5,
+      "HOLE_MAX_DIAMETER_MM": 3.0,
+      "HOLE_AREA_MIN_FRACTION": 0.3,
+      "HOLE_AREA_MAX_FACTOR": 2.0,
+      "HOLE_OVERSIZE_REVIEW_FACTOR": 6.0,
+      "EDGE_TOOTH_MARGIN_PX": 8.0,
+      "EDGE_TOOTH_OUTLINE_FRACTION": 0.15,
+      "FOCUS_SHARPNESS_BLUR_PX": 5,
+      "FOCUS_PYRAMID_LEVELS": 4,
+      "ROI_EXPECTED_HOLE_DIAMETER_UM": 1200.0,
+      "ROI_CROP_SCALE_FACTOR": 3.0,
+      "ROI_MIN_CROP_PX": 33,
+      "TOOTH_ARC_MASK_MARGIN_UM": 60.0,
+      "TOOTH_ARC_END_TRIM_FRACTION": 0.1,
+      "RADIUS_PROFILE_NUM_ANGLES": 72,
+      "FOURIER_FIT_ORDER": 4,
+      "BRIGHTNESS_MISMATCH_TOLERANCE": 0.15,
+      "BRIGHTNESS_PATCH_SIZE_PX": 32,
+      "CAMERA_MATCH_KEYS": [
+        "aperture",
+        "shutter_speed",
+        "iso",
+        "white_balance"
+      ],
+      "BOUNDARY_SAMPLE_SPACING_UM": 20.0,
+      "BOUNDARY_PATCH_SIZE_PX": 7,
+      "GLCM_LEVELS": 32,
+      "GLCM_DISTANCES": [
+        1
+      ],
+      "GLCM_ANGLES_DEG": [
+        0.0
+      ],
+      "PAPER_SAMPLE_BAND_UM": [
+        100.0,
+        300.0
+      ],
+      "PAPER_SAMPLE_BAND_STEPS": 5,
+      "MIN_HOLES_PER_EDGE": 5,
+      "MAD_SCALE_CONSTANT": 0.6745,
+      "COMBINATION_METHOD": "summed_z",
+      "SCALE_METHOD": "pooled_edge_factor",
+      "POOLED_SCALE_MIN_EDGE_SIZE": 8,
+      "MEAN_AD_SCALE_CONSTANT": 0.7979,
+      "ZERO_SPREAD_RELATIVE_FLOOR": 0.01,
+      "GEOMETRY_RESOLUTION_PX": 0.25,
+      "GEOMETRY_UM_FIELDS": [
+        "mean_radius_um",
+        "radius_std_um",
+        "fourier_c1",
+        "fourier_c2",
+        "fourier_c3",
+        "fourier_c4",
+        "residual_wobble"
+      ],
+      "OUTLIER_TAIL_PROBABILITY": 0.01,
+      "MIN_REFERENCE_GROUP_SIZE": 3,
+      "NULL_CALIBRATION_DRAWS": 20000,
+      "NULL_CALIBRATION_SEED": 20261025,
+      "OUTLIER_CUTOFF": 5.398262474229351,
+      "FIELD_DRIVER_Z": 3.3840362518645795,
+      "FIELD_NOTABLE_Z": 1.96,
+      "SHADOW_DIRECTION_MIN_RELATIVE_STRENGTH": 0.25,
+      "SHADOW_DIRECTION_MIN_RESULTANT_LENGTH": 0.3,
+      "REGION_MERGE_MAX_GAP": 1,
+      "REGION_MERGE_ENABLED": true,
+      "REGION_MIN_RUN_LENGTH": 2,
+      "REGION_PITCH_GAP_FACTOR": 1.5,
+      "EDGE_VARIATION_THRESHOLDS_PCT": {
+        "spacing": 8.9,
+        "notch_depth": 5.9,
+        "hole_size": 16.2,
+        "radius_std_um": 2.1,
+        "fourier_c1": 0.8,
+        "fourier_c2": 1.7,
+        "fourier_c3": 10.9,
+        "fourier_c4": 9.6,
+        "residual_wobble": 1.8,
+        "sobel_mean": 24.4,
+        "sobel_std": 40.2,
+        "glcm_contrast": 67.5,
+        "glcm_homogeneity": 10.2,
+        "shadow_strength": 83.4
+      },
+      "EDGE_VARIATION_MIN_EXCEEDED": 2,
+      "EDGE_CONSISTENCY_MIN_TEETH": 5,
+      "OUTPUT_DISPLAY_GAMMA": 2.2,
+      "THUMBNAIL_MAX_PX": 256,
+      "VALIDATION_ROC_TAIL_PROBABILITIES": [
+        0.5,
+        0.2,
+        0.1,
+        0.05,
+        0.02,
+        0.01,
+        0.005,
+        0.002,
+        0.001,
+        0.0005,
+        0.0001
+      ],
+      "QUALITY_BACKLIT_SEPARATION_PASS": 0.8,
+      "QUALITY_BACKLIT_SEPARATION_WARN": 0.6,
+      "QUALITY_TORCH_WARN_MULTIPLIER": 2.0,
+      "SUSPICION_BANDS": {
+        "genuine": [
+          0.05,
+          1.0
+        ],
+        "suspicious": [
+          0.001,
+          0.05
+        ],
+        "highly_suspicious": [
+          0.0,
+          0.001
+        ]
+      }
+    },
+    "library_versions": {
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "scikit-learn": "1.9.1",
+      "pandas": "3.1.0",
+      "opencv-python": "5.0.0.93",
+      "scikit-image": "0.26.0",
+      "rawpy": "0.27.1",
+      "shapely": "2.2.0",
+      "PySide6": "6.12.0",
+      "matplotlib": "3.11.2",
+      "reportlab": "5.1.0"
+    },
+    "captured_at": "2026-10-26T19:22:04.477568+00:00"
+  },
+  "mod_token": 527,
+  "created_at": "2026-10-26T19:20:37.373245+00:00",
+  "updated_at": "2026-10-26T19:23:12.139012+00:00"
 }

@@ -236,11 +236,16 @@ EDGE_VARIATION_THRESHOLDS_PCT: Dict[str, float] = {
     "shadow_strength": 83.4,    # genuine max 55.6
 }
 EDGE_VARIATION_MIN_EXCEEDED: int = 2
+# Overall result shown on the Results tab: evidence strength is the share of
+# checked edges that fail; at or above this share the wording moves from
+# "may have been" to "likely".
+VERDICT_LIKELY_EDGE_FRACTION: float = 0.5
 EDGE_CONSISTENCY_MIN_TEETH: int = 5        # Fewer teeth on an edge: not assessed
 
 # -------------------------------------------------------------------------
 # Step 23: Final Output Generation
 # -------------------------------------------------------------------------
+THUMBNAIL_MAX_PX: int = 256                # Long side of the gallery / thumbnail-strip previews written by the pipeline
 OUTPUT_DISPLAY_GAMMA: float = 2.2          # Gamma applied to the annotated overview's drawing copy only
 OUTPUT_MARKER_RADIUS_FRACTION: float = 0.005  # Hole marker radius as a fraction of image width (min 3 px)
 
@@ -354,7 +359,9 @@ def get_pipeline_constants_dict() -> Dict[str, Any]:
         "EDGE_VARIATION_THRESHOLDS_PCT": EDGE_VARIATION_THRESHOLDS_PCT,
         "EDGE_VARIATION_MIN_EXCEEDED": EDGE_VARIATION_MIN_EXCEEDED,
         "EDGE_CONSISTENCY_MIN_TEETH": EDGE_CONSISTENCY_MIN_TEETH,
+        "VERDICT_LIKELY_EDGE_FRACTION": VERDICT_LIKELY_EDGE_FRACTION,
         "OUTPUT_DISPLAY_GAMMA": OUTPUT_DISPLAY_GAMMA,
+        "THUMBNAIL_MAX_PX": THUMBNAIL_MAX_PX,
         "VALIDATION_ROC_TAIL_PROBABILITIES": VALIDATION_ROC_TAIL_PROBABILITIES,
         "QUALITY_BACKLIT_SEPARATION_PASS": QUALITY_BACKLIT_SEPARATION_PASS,
         "QUALITY_BACKLIT_SEPARATION_WARN": QUALITY_BACKLIT_SEPARATION_WARN,

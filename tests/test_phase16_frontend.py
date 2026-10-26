@@ -8,5 +8,5 @@ def test_phase16_continuity_modules_import():
 
     assert hasattr(resume, "ResumeSessionDialog")
     assert hasattr(reset, "ResetConfirmDialog")
-    assert hasattr(processing.ProcessingTab, "resume_session")
+    assert not hasattr(processing.ProcessingTab, "resume_session")   # no Resume button on the Processing tab
     assert hasattr(processing.ProcessingTab, "reprocess_from_stage")

@@ -241,6 +241,8 @@ application can receive files and start a run, which the original 29 functions c
 32. `get_raw_files(session_id: str) -> dict` (Feature 1 — list files already in `raw/` with their tags and the checklist)
 33. `start_pipeline(session_id: str) -> dict` (Process button — run Steps 1–23; called off the GUI thread)
 34. `generate_report(session_id: str) -> str` (Feature 20 — write `results/report.pdf`; returns its path, or the structured failure dict)
+36. `import_session(archive_path: str, new_session_id: str | None = None) -> dict` (Feature 27 — restore a session from an exported zip; `export_session` also gained an optional `destination` path and exports unfinished sessions)
+35. `get_session_log(session_id: str) -> dict` (Feature 2 — read back the saved session log so the form reloads without re-entering data; `{success, error, exists, log}`)
 
 ---
 

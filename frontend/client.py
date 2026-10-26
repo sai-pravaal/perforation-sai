@@ -74,6 +74,9 @@ class Client:
         self.backend = backend_module or backend_api
         self._current_session_id: Optional[str] = None
         self._pending: Set[_CallRelay] = set()
+        # Bumped by reset_state(); a background call started before a reset must
+        # not deliver its result into the fresh state afterwards.
+        self._generation = 0
 
     def call_async(
         self,
@@ -91,7 +94,13 @@ class Client:
             if on_done is not None:
                 on_done({"success": False, "error": f"Unknown backend action: {fn_name}"})
             return
-        relay = _CallRelay(on_done)
+        generation = self._generation
+        callback = on_done
+        if on_done is not None:
+            def callback(response: Dict[str, Any], _fn=on_done, _gen=generation) -> None:
+                if _gen == self._generation:
+                    _fn(response)
+        relay = _CallRelay(callback)
         self._pending.add(relay)
         relay.done.connect(lambda _r, rl=relay: self._pending.discard(rl))
         QThreadPool.globalInstance().start(_CallTask(func, args, kwargs, relay))
@@ -117,6 +126,15 @@ class Client:
         if isinstance(payload, dict) and payload.get("success") is False:
             return None, payload.get("error") or default_error
         return payload, None
+
+    def has_pending_calls(self) -> bool:
+        """True while a background call (pipeline run, upload, export, ...) is still running."""
+        return bool(self._pending)
+
+    def reset_state(self) -> None:
+        """Forget the active session and drop results of calls still in flight (Feature 23)."""
+        self._generation += 1
+        self._current_session_id = None
 
     def set_current_session_id(self, session_id: Optional[str]) -> None:
         self._current_session_id = session_id or None

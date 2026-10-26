@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 from typing import Optional
 
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import QFileDialog, QLabel, QMainWindow, QMessageBox, QTabWidget
+from PySide6.QtWidgets import QFileDialog, QInputDialog, QLabel, QMainWindow, QMessageBox, QTabWidget
 
 from frontend.client import Client
 from frontend.dialogs.reset_confirm_dialog import ResetConfirmDialog
@@ -27,23 +26,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("IPDS Reperforation Detection")
         self.client = client or Client()
 
-        # Pipeline order, left to right.
-        self.upload_tab = UploadTab(self.client)
-        self.session_log_tab = SessionLogTab(self.client)
-        self.processing_tab = ProcessingTab(self.client)
-        self.view_tab = ViewTab(self.client)
-        self.results_tab = ResultsTab(self.client)
-        self.validation_tab = ValidationTab(self.client)
         self.tabs = QTabWidget()
-        for widget, title in (
-            (self.upload_tab, "Upload"),
-            (self.session_log_tab, "Session Log"),
-            (self.processing_tab, "Processing"),
-            (self.view_tab, "View"),
-            (self.results_tab, "Results"),
-            (self.validation_tab, "Validation"),
-        ):
-            self.tabs.addTab(widget, title)
         self.setCentralWidget(self.tabs)
 
         self._build_menus()
@@ -56,6 +39,34 @@ class MainWindow(QMainWindow):
         self._checklist_ready = False
         self._log_saved = False
         self._bleed_acknowledged = False
+        self._build_tabs()
+
+        if session_id:
+            # A resumed session already passed capture setup in an earlier run.
+            self._checklist_ready = self._log_saved = self._bleed_acknowledged = True
+            self.set_session_id(session_id)
+        self._apply_gating()
+        self.resize(1280, 860)
+
+    def _build_tabs(self) -> None:
+        """Create every tab fresh and wire it (also used by Reset, so nothing is carried over)."""
+        # Pipeline order, left to right.
+        self.upload_tab = UploadTab(self.client)
+        self.session_log_tab = SessionLogTab(self.client)
+        self.processing_tab = ProcessingTab(self.client)
+        self.view_tab = ViewTab(self.client)
+        self.results_tab = ResultsTab(self.client)
+        self.validation_tab = ValidationTab(self.client)
+        for widget, title in (
+            (self.upload_tab, "Upload"),
+            (self.session_log_tab, "Session Log"),
+            (self.processing_tab, "Processing"),
+            (self.view_tab, "View"),
+            (self.results_tab, "Results"),
+            (self.validation_tab, "Validation"),
+        ):
+            self.tabs.addTab(widget, title)
+
         self.upload_tab.checklist_ready.connect(self._on_checklist_ready)
         self.upload_tab.session_changed.connect(self.set_session_id)
         self.session_log_tab.log_saved.connect(self._on_log_saved)
@@ -66,13 +77,15 @@ class MainWindow(QMainWindow):
         self.processing_tab.edit_session_log_requested.connect(
             lambda _step: self.tabs.setCurrentWidget(self.session_log_tab))
         self.processing_tab.image_selected.connect(self._on_thumbnail_selected)
+        self.results_tab.export_requested.connect(self.export_session)
 
-        if session_id:
-            # A resumed session already passed capture setup in an earlier run.
-            self._checklist_ready = self._log_saved = self._bleed_acknowledged = True
-            self.set_session_id(session_id)
-        self._apply_gating()
-        self.resize(1280, 860)
+    def _discard_tabs(self) -> None:
+        """Remove and delete every tab (and with them their timers, images and widget state)."""
+        old = [self.tabs.widget(i) for i in range(self.tabs.count())]
+        self.tabs.clear()  # removes the pages without deleting them
+        for widget in old:
+            widget.hide()
+            widget.deleteLater()
 
     # ------------------------------------------------------------- session
     def set_session_id(self, session_id: Optional[str]) -> None:
@@ -99,9 +112,15 @@ class MainWindow(QMainWindow):
         self._apply_gating()
 
     def _apply_gating(self) -> None:
-        """Session Log onward need the checklist; Processing also needs log + acknowledgement."""
-        for index in range(1, self.tabs.count()):
-            self.tabs.setTabEnabled(index, self._checklist_ready)
+        """Only Processing is locked: it needs the checklist, the saved log and the acknowledgement.
+
+        The Session Log form can be filled in at any time (it was locked until
+        the upload checklist passed, so torch geometry could not be entered
+        first), and View/Results/Validation just show whatever the session
+        already holds.
+        """
+        for index in range(self.tabs.count()):
+            self.tabs.setTabEnabled(index, True)
         processing_index = self.tabs.indexOf(self.processing_tab)
         self.tabs.setTabEnabled(
             processing_index, self._checklist_ready and self._log_saved and self._bleed_acknowledged
@@ -132,11 +151,14 @@ class MainWindow(QMainWindow):
         file_menu = self.menuBar().addMenu("&File")
         export_action = QAction("Export Session…", self)
         export_action.triggered.connect(self.export_session)
+        import_action = QAction("Import Session…", self)
+        import_action.triggered.connect(self.import_session)
         reset_action = QAction("Reset Session…", self)
         reset_action.triggered.connect(self.reset_session)
         quit_action = QAction("Quit", self)
         quit_action.triggered.connect(self.close)
         file_menu.addAction(export_action)
+        file_menu.addAction(import_action)
         file_menu.addAction(reset_action)
         file_menu.addSeparator()
         file_menu.addAction(quit_action)
@@ -152,13 +174,23 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "No session", "Open or create a session first.")
         return session_id
 
+    def _busy(self) -> bool:
+        if self.client.has_pending_calls():
+            QMessageBox.information(self, "Busy", "Wait for the running operation (processing, upload, export "
+                                    "or validation) to finish first.")
+            return True
+        return False
+
     def export_session(self) -> None:
-        """Feature 27: archive the session, then let the user choose where to keep it."""
+        """Feature 27: choose where to save, then zip the session there in the background."""
         session_id = self._require_session()
-        if not session_id:
+        if not session_id or self._busy():
             return
-        self.statusBar().showMessage("Exporting session…")
-        self.client.call_async("export_session", session_id, on_done=self._on_export_done)
+        target, _ = QFileDialog.getSaveFileName(self, "Export session", f"{session_id}.zip", "Session archive (*.zip)")
+        if not target:
+            return
+        self.statusBar().showMessage(f"Exporting session {session_id}…")
+        self.client.call_async("export_session", session_id, target, on_done=self._on_export_done)
 
     def _on_export_done(self, response) -> None:
         self.statusBar().clearMessage()
@@ -166,24 +198,72 @@ class MainWindow(QMainWindow):
         if error or not isinstance(archive, str) or not Path(archive).exists():
             QMessageBox.warning(self, "Export failed", str(error or "The session could not be exported."))
             return
-        target, _ = QFileDialog.getSaveFileName(self, "Save session archive", Path(archive).name, "Zip archive (*.zip)")
-        if target:
-            shutil.copy2(archive, target)
-            self.statusBar().showMessage(f"Session archive saved to {target}", 6000)
+        size_mb = Path(archive).stat().st_size / 1e6
+        QMessageBox.information(self, "Session exported", f"Saved {size_mb:.0f} MB to:\n{archive}")
+
+    def import_session(self) -> None:
+        """Feature 27: restore a session from an exported archive and open it."""
+        if self._busy():
+            return
+        path, _ = QFileDialog.getOpenFileName(self, "Import session", "", "Session archive (*.zip)")
+        if not path:
+            return
+        self._start_import(path, None)
+
+    def _start_import(self, path: str, new_id) -> None:
+        self.statusBar().showMessage("Importing session…")
+        self.client.call_async("import_session", path, new_id, on_done=lambda r: self._on_import_done(path, r))
+
+    def _on_import_done(self, path: str, response) -> None:
+        self.statusBar().clearMessage()
+        result = response.get("result", response) if isinstance(response, dict) else {}
+        if isinstance(result, dict) and result.get("exists"):
+            # The archive's session name is taken: let the user pick another.
+            name, ok = QInputDialog.getText(
+                self, "Session already exists",
+                f"A session named '{result.get('session_id')}' already exists.\nImport it under this name:",
+                text=str(result.get("suggested_id", "")))
+            if ok and name.strip():
+                self._start_import(path, name.strip())
+            return
+        payload, error = Client.unwrap(response, "The session could not be imported.")
+        if error or not isinstance(payload, dict):
+            QMessageBox.warning(self, "Import failed", str(error or "The session could not be imported."))
+            return
+        session_id = payload["session_id"]
+        self.set_session_id(session_id)
+        self.tabs.setCurrentWidget(self.results_tab if payload.get("status") == "complete" else self.upload_tab)
+        self.statusBar().showMessage(f"Imported session {session_id} ({payload.get('status')}).", 8000)
 
     def reset_session(self) -> None:
         """Feature 23: delete the session only after explicit confirmation."""
         session_id = self._require_session()
-        if not session_id or not ResetConfirmDialog.confirm(self, session_id):
+        if not session_id:
+            return
+        if self.client.has_pending_calls():
+            # A run, upload or export is still reading or writing the session folder.
+            QMessageBox.information(self, "Busy", "Wait for the running operation (processing, upload, export "
+                                    "or validation) to finish before resetting the session.")
+            return
+        if not ResetConfirmDialog.confirm(self, session_id):
             return
         response = self.client.call("reset_session", session_id)
         if response.get("success") is False or not response.get("result"):
             QMessageBox.warning(self, "Reset failed", response.get("error", "The session could not be deleted."))
             return
+        self._start_clean()
+
+    def _start_clean(self) -> None:
+        """Return the whole application to its just-launched state: no session, every tab new."""
+        self.client.reset_state()
+        self._discard_tabs()
         self._checklist_ready = self._log_saved = self._bleed_acknowledged = False
-        self.set_session_id(None)
+        self._build_tabs()
+        self.session_label.setText("No active session")
+        self.phase_label.setText("")
+        self.statusBar().clearMessage()
         self._apply_gating()
-        self.tabs.setCurrentWidget(self.upload_tab)
+        self.tabs.setCurrentIndex(0)
 
     def show_about(self) -> None:
         """Feature 28: show version and constants metadata read-only."""

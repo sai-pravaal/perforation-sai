@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
 )
 
 from frontend.client import Client
-from frontend.widgets.graphics_view_sync import GraphicsViewSync, load_display_pixmap
+from frontend.widgets.graphics_view_sync import GraphicsViewSync, load_thumbnail_pixmap
 
 ALL = "All"
 # Manifest image stage labels written by the pipeline, with readable names.
@@ -58,6 +58,10 @@ class ViewTab(QWidget):
             self.edge_filter.addItem(e.title(), e)
         self.flagged_only = QCheckBox("Flagged only")
         for combo in (self.stage_filter, self.hole_filter, self.edge_filter):
+            # Sized to a short minimum instead of the longest item (~400 px each),
+            # which made the filter bar alone wider than a small screen.
+            combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+            combo.setMinimumContentsLength(8)
             combo.currentIndexChanged.connect(self.refresh_gallery)
         self.flagged_only.toggled.connect(self.refresh_gallery)
         filters = QHBoxLayout()
@@ -75,6 +79,7 @@ class ViewTab(QWidget):
         self.gallery.itemClicked.connect(self._on_item_clicked)
         self.gallery.itemEntered.connect(self._on_item_hovered)
         hint = QLabel("Click: image A · Ctrl+click: image B")
+        hint.setWordWrap(True)
         hint.setProperty("status", "")
 
         left = QWidget()
@@ -85,6 +90,7 @@ class ViewTab(QWidget):
 
         self.comparison = GraphicsViewSync()
         self.message = QLabel("Choose a session to see its images.")
+        self.message.setWordWrap(True)
         right = QWidget()
         right_layout = QVBoxLayout(right)
         right_layout.addWidget(self.comparison)
@@ -132,7 +138,7 @@ class ViewTab(QWidget):
         for record in records:
             item = QListWidgetItem(f"{STAGE_LABELS.get(record.get('stage'), record.get('stage', ''))}\n"
                                    f"{record.get('hole_id') or ''}".strip())
-            pixmap = load_display_pixmap(record.get("abs_path"))
+            pixmap = load_thumbnail_pixmap(record)
             if not pixmap.isNull():
                 item.setIcon(QIcon(pixmap.scaled(GALLERY_ICON, GALLERY_ICON, Qt.AspectRatioMode.KeepAspectRatio,
                                                  Qt.TransformationMode.SmoothTransformation)))

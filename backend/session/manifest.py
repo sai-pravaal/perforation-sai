@@ -272,6 +272,25 @@ class ManifestManager:
         data["mod_token"] += 1
         self._write_manifest(data)
 
+    @_locked
+    def set_session_id(self, session_id: str) -> None:
+        """Make the manifest's session id match its folder (after an import under another name)."""
+        data = self.load()
+        data["session_id"] = session_id
+        data["mod_token"] += 1
+        self._write_manifest(data)
+
+    @_locked
+    def set_image_thumbs(self, thumb_by_token: Dict[int, str]) -> None:
+        """Record each image's preview file (session-relative) under the entry's 'thumb' field."""
+        data = self.load()
+        for img in data.get("images", []):
+            rel = thumb_by_token.get(img.get("token"))
+            if rel:
+                img["thumb"] = rel
+        data["mod_token"] += 1
+        self._write_manifest(data)
+
     def get_manifest_diff(self, since_token: int = 0) -> Dict[str, Any]:
         """Return entries added since the specified token for incremental UI refresh."""
         data = self.load()

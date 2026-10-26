@@ -24,6 +24,7 @@ from PySide6.QtWidgets import (
 
 from frontend.client import Client
 from frontend.widgets.checklist_widget import CHECKLIST_ITEMS, ChecklistWidget
+from frontend.widgets.scroll import install_scroll_area
 
 UNTAGGED = "(choose tag)"
 TAG_CHOICES = [UNTAGGED] + [tag for tag, _ in CHECKLIST_ITEMS]
@@ -98,7 +99,8 @@ class QualityGateCard(QFrame):
         self.show()
         self._refresh_continue()
         if not any_fail and not self._acks:
-            QTimer.singleShot(1000, self.continue_requested.emit)
+            # Bound to this card: deleting the tab (Reset) cancels the pending start.
+            QTimer.singleShot(1000, self, self.continue_requested.emit)
 
     def _refresh_continue(self) -> None:
         self.continue_button.setEnabled(not self._any_fail and all(a.isChecked() for a in self._acks))
@@ -155,7 +157,7 @@ class UploadTab(QWidget):
 
         form = QFormLayout()
         form.addRow("Session", self.session_id)
-        layout = QVBoxLayout(self)
+        layout = QVBoxLayout(install_scroll_area(self))
         layout.addLayout(form)
         layout.addWidget(drop_frame)
         layout.addWidget(self.files)

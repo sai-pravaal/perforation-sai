@@ -37,7 +37,7 @@ SESSION_LOG_STEPS = {3}
 
 
 class ProcessingTab(QWidget):
-    """Stepper, brightness chips, per-hole counter, live thumbnails, start/resume/reprocess."""
+    """Stepper, brightness chips, per-hole counter, live thumbnails, start/reprocess."""
 
     phase_changed = Signal(str)
     pipeline_finished = Signal(str)
@@ -64,8 +64,6 @@ class ProcessingTab(QWidget):
 
         self.start_button = QPushButton("Start processing")
         self.start_button.clicked.connect(lambda: self.start_pipeline())
-        self.resume_button = QPushButton("Resume")
-        self.resume_button.clicked.connect(self.resume_session)
         self.reprocess_button = QToolButton()
         self.reprocess_button.setText("Reprocess from…")
         self.reprocess_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
@@ -74,7 +72,6 @@ class ProcessingTab(QWidget):
 
         toolbar = QHBoxLayout()
         toolbar.addWidget(self.start_button)
-        toolbar.addWidget(self.resume_button)
         toolbar.addWidget(self.reprocess_button)
         toolbar.addStretch(1)
 
@@ -233,30 +230,6 @@ class ProcessingTab(QWidget):
             chip.style().polish(chip)
         self.chips_box.show()
         self._chips_loaded = True
-
-    # ------------------------------------------------------ resume (F22)
-    def resume_session(self) -> None:
-        """Reload the session's state; if it stopped early, offer to continue from the next step."""
-        sid = self._session_id
-        if not sid:
-            self._show_error("No active session.")
-            return
-        info, error = Client.unwrap(self.client.call("resume_session", sid), "Unable to resume the session.")
-        if error or not isinstance(info, dict):
-            self._show_error(error or "Unable to resume the session.")
-            return
-        self.refresh_status()
-        last = int(info.get("last_completed_step", 0) or 0)
-        if info.get("status") == "complete" or last >= 23:
-            self.message.setText("This session already completed all 23 steps.")
-            return
-        nxt = last + 1
-        answer = QMessageBox.question(
-            self, "Continue processing?",
-            f"The session stopped after step {last}. Continue from step {nxt} ({STEP_NAMES[nxt]})?",
-        )
-        if answer == QMessageBox.StandardButton.Yes:
-            self._launch(nxt, f"Continuing from step {nxt}.")
 
     # ---------------------------------------------------- reprocess (F24)
     def _build_reprocess_menu(self) -> QMenu:
